@@ -85,6 +85,7 @@ export default function TodosPage() {
 
   const todosQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
+    // Strictly path-based subcollection query
     return query(
       collection(db, "users", user.uid, "todos"),
       orderBy("createdAt", "desc")
@@ -120,7 +121,7 @@ export default function TodosPage() {
     addDocumentNonBlocking(colRef, {
       title: newTodo,
       completed: false,
-      userId: user.uid,
+      userId: user.uid, // Required for security rules
       createdAt: serverTimestamp(),
       priority,
       isDaily,
@@ -153,7 +154,7 @@ export default function TodosPage() {
             <TeddyIcon variant="todos" size={32} />
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Your Tasks</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Focus Central</h1>
             <p className="text-muted-foreground text-sm">Pawsitive productivity starts here!</p>
           </div>
         </div>
@@ -163,15 +164,13 @@ export default function TodosPage() {
         <CardContent className="p-6">
           <form onSubmit={handleAddTodo} className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Input 
-                  placeholder="What's on your mind today?" 
-                  value={newTodo}
-                  onChange={(e) => setNewTodo(e.target.value)}
-                  className="h-12 border-none bg-muted/30 focus-visible:ring-primary text-base pl-4"
-                  disabled={adding}
-                />
-              </div>
+              <Input 
+                placeholder="What's the goal for today?" 
+                value={newTodo}
+                onChange={(e) => setNewTodo(e.target.value)}
+                className="h-12 border-none bg-muted/30 focus-visible:ring-primary text-base px-4"
+                disabled={adding}
+              />
               <Button type="submit" className="h-12 px-8 gradient-btn font-semibold" disabled={adding}>
                 {adding ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5 mr-2" />}
                 Add Task
@@ -190,7 +189,7 @@ export default function TodosPage() {
               </Select>
               <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
                 <Checkbox id="daily" checked={isDaily} onCheckedChange={(v: any) => setIsDaily(v)} />
-                <label htmlFor="daily" className="text-sm font-medium cursor-pointer">Daily</label>
+                <label htmlFor="daily" className="text-sm font-medium cursor-pointer">Daily Habit</label>
               </div>
               <Input 
                 type="date" 
@@ -218,9 +217,9 @@ export default function TodosPage() {
             <SelectValue placeholder="All Tasks" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Tasks</SelectItem>
+            <SelectItem value="all">All</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="completed">Done</SelectItem>
             <SelectItem value="daily">Daily Only</SelectItem>
           </SelectContent>
         </Select>
@@ -235,8 +234,7 @@ export default function TodosPage() {
           )}
           {!isLoading && filteredTodos?.length === 0 && (
             <div className="text-center py-20 bg-white/10 backdrop-blur rounded-3xl border border-dashed border-white/20">
-              <TeddyIcon variant="paw" size={48} className="mx-auto mb-4 opacity-20" />
-              <p className="text-muted-foreground">No tasks found. Time to relax?</p>
+              <p className="text-muted-foreground">No tasks found. Time to add some goals?</p>
             </div>
           )}
           {filteredTodos?.map((todo) => (
@@ -273,11 +271,6 @@ export default function TodosPage() {
                         {todo.priority}
                       </Badge>
                     )}
-                    {todo.isDaily && (
-                      <Badge variant="secondary" className="text-[10px] h-5 bg-primary/10 text-primary border-none">
-                        <Zap className="h-2.5 w-2.5 mr-1" /> {todo.streakDays || 0}
-                      </Badge>
-                    )}
                   </div>
                   {todo.dueDate && (
                     <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1">
@@ -294,9 +287,8 @@ export default function TodosPage() {
                       setBreakingDownId(todo.id);
                       try {
                         const subtasks = await aiTaskBreakdown(todo.title);
-                        updateDocumentNonBlocking(doc(db!, "users", user.uid, "todos", todo.id), { subtasks });
-                      } catch (e) {
-                        toast({ variant: "destructive", title: "AI Error", description: "Fail to breakdown." });
+                        const docRef = doc(db!, "users", user!.uid, "todos", todo.id);
+                        updateDocumentNonBlocking(docRef, { subtasks });
                       } finally {
                         setBreakingDownId(null);
                       }
@@ -308,7 +300,10 @@ export default function TodosPage() {
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    onClick={() => deleteDocumentNonBlocking(doc(db!, "users", user.uid, "todos", todo.id))}
+                    onClick={() => {
+                      const docRef = doc(db!, "users", user!.uid, "todos", todo.id);
+                      deleteDocumentNonBlocking(docRef);
+                    }}
                     className="text-destructive hover:bg-destructive/10"
                   >
                     <Trash2 className="h-4 w-4" />

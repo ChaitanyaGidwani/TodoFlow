@@ -17,8 +17,7 @@ import {
   useCollection, 
   useMemoFirebase,
   addDocumentNonBlocking,
-  updateDocumentNonBlocking,
-  deleteDocumentNonBlocking
+  updateDocumentNonBlocking
 } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +35,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, 
-  Trash2, 
   LogOut, 
   Sparkles, 
   Loader2, 
@@ -106,6 +104,7 @@ export default function Dashboard() {
 
   const todosQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
+    // Path: users/{userId}/todos
     return query(
       collection(db, "users", user.uid, "todos"),
       orderBy("createdAt", "desc")
@@ -148,7 +147,7 @@ export default function Dashboard() {
     addDocumentNonBlocking(colRef, {
       title: newTodo,
       completed: false,
-      userId: user.uid,
+      userId: user.uid, // Required field
       createdAt: serverTimestamp(),
       priority,
       isDaily,
@@ -185,14 +184,6 @@ export default function Dashboard() {
     }
 
     updateDocumentNonBlocking(docRef, updates);
-  };
-
-  const getBadge = (streak: number) => {
-    if (streak >= 365) return { name: "Platinum", color: "bg-slate-400" };
-    if (streak >= 100) return { name: "Gold", color: "bg-yellow-400" };
-    if (streak >= 30) return { name: "Silver", color: "bg-slate-300" };
-    if (streak >= 7) return { name: "Bronze", color: "bg-amber-600" };
-    return null;
   };
 
   const filteredTodos = todos?.filter(t => {
@@ -264,7 +255,7 @@ export default function Dashboard() {
             <CardContent className="p-4 flex items-center gap-4">
               <div className="p-3 bg-amber-100 rounded-xl"><Trophy className="text-amber-600 h-6 w-6" /></div>
               <div>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Flow</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Tasks</p>
                 <p className="text-2xl font-bold">{todos?.length || 0}</p>
               </div>
             </CardContent>
@@ -275,15 +266,15 @@ export default function Dashboard() {
           <Card className="todo-card border-none shadow-lg lg:col-span-2">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" /> Streak Progress
+                <BarChart3 className="h-5 w-5 text-primary" /> Streak Trends
               </CardTitle>
             </CardHeader>
             <CardContent className="h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={stats?.streakHistory}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12}} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
                   <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                   <Line type="monotone" dataKey="streak" stroke="#5C2EB3" strokeWidth={3} dot={{r: 4, fill: '#5C2EB3'}} />
                 </LineChart>
@@ -294,7 +285,7 @@ export default function Dashboard() {
           <Card className="todo-card border-none shadow-lg">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <PieChartIcon className="h-5 w-5 text-secondary" /> Flow Balance
+                <PieChartIcon className="h-5 w-5 text-secondary" /> Flow Ratio
               </CardTitle>
             </CardHeader>
             <CardContent className="h-[250px] w-full flex items-center justify-center">
@@ -320,7 +311,7 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        <Card className="todo-card border-none shadow-xl overflow-hidden">
+        <Card className="todo-card border-none shadow-xl">
           <CardContent className="p-6">
             <form onSubmit={handleAddTodo} className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-3">
@@ -333,7 +324,7 @@ export default function Dashboard() {
                 />
                 <Button type="submit" className="h-12 px-8 gradient-btn font-semibold" disabled={adding}>
                   {adding ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Plus className="h-5 w-5 mr-2" />}
-                  Add Task
+                  Quick Add
                 </Button>
               </div>
               <div className="flex flex-wrap items-center gap-4 pt-2">
@@ -349,17 +340,14 @@ export default function Dashboard() {
                 </Select>
                 <div className="flex items-center gap-2 bg-white/50 px-3 py-1.5 rounded-md border border-white/20">
                   <Checkbox id="daily" checked={isDaily} onCheckedChange={(v: any) => setIsDaily(v)} />
-                  <label htmlFor="daily" className="text-sm font-medium cursor-pointer">Daily Task</label>
+                  <label htmlFor="daily" className="text-sm font-medium cursor-pointer">Daily</label>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    type="date" 
-                    value={dueDate} 
-                    onChange={(e) => setDueDate(e.target.value)}
-                    className="h-9 w-[160px] bg-white/50 border-white/20"
-                  />
-                </div>
+                <Input 
+                  type="date" 
+                  value={dueDate} 
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="h-9 w-[160px] bg-white/50 border-white/20"
+                />
               </div>
             </form>
           </CardContent>
@@ -368,21 +356,19 @@ export default function Dashboard() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" /> Your Flow
+              <TrendingUp className="h-5 w-5 text-primary" /> Active Tasks
             </h2>
-            <div className="flex items-center gap-2">
-              <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger className="w-[130px] h-9 bg-white/50 border-white/20">
-                  <SelectValue placeholder="Filter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Tasks</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="daily">Daily Only</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={filter} onValueChange={setFilter}>
+              <SelectTrigger className="w-[130px] h-9 bg-white/50 border-white/20">
+                <SelectValue placeholder="Filter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="completed">Done</SelectItem>
+                <SelectItem value="daily">Daily</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <ScrollArea className="h-[600px] pr-4">
@@ -398,114 +384,79 @@ export default function Dashboard() {
                   <p className="text-muted-foreground">No tasks match your current filter.</p>
                 </div>
               )}
-              {filteredTodos?.map((todo) => {
-                const badge = todo.isDaily ? getBadge(todo.streakDays || 0) : null;
-                return (
-                  <Card 
-                    key={todo.id} 
-                    className={cn(
-                      "todo-card transition-all duration-300 group hover:translate-x-1 border-l-4",
-                      todo.completed ? "border-l-green-500 opacity-70" : 
-                      todo.priority === 'high' ? "border-l-rose-500" :
-                      todo.priority === 'medium' ? "border-l-amber-500" : "border-l-blue-500"
-                    )}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-4">
-                        <button 
-                          onClick={() => toggleTodo(todo)}
-                          className={cn(
-                            "mt-1 shrink-0 transition-colors",
-                            todo.completed ? "text-green-500" : "text-muted-foreground hover:text-primary"
-                          )}
-                        >
-                          {todo.completed ? <CheckCircle2 className="h-6 w-6" /> : <Circle className="h-6 w-6" />}
-                        </button>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center flex-wrap gap-2 mb-1">
-                            <p className={cn(
-                              "text-lg font-medium break-words",
-                              todo.completed && "line-through text-muted-foreground"
-                            )}>
-                              {todo.title}
-                            </p>
-                            {todo.priority && (
-                              <Badge variant="outline" className={cn("text-[10px] h-5 uppercase px-2", PRIORITY_COLORS[todo.priority])}>
-                                {todo.priority}
-                              </Badge>
-                            )}
-                            {todo.isDaily && (
-                              <Badge variant="secondary" className="text-[10px] h-5 bg-primary/10 text-primary border-none flex items-center gap-1">
-                                <Zap className="h-2.5 w-2.5" /> {todo.streakDays || 0} Streak
-                              </Badge>
-                            )}
-                            {badge && (
-                              <Badge className={cn("text-[10px] h-5 border-none text-white flex items-center gap-1", badge.color)}>
-                                <Trophy className="h-2.5 w-2.5" /> {badge.name}
-                              </Badge>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            {todo.dueDate && (
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" /> Due: {format(parseISO(todo.dueDate), 'MMM d, yyyy')}
-                              </span>
-                            )}
-                            <span className="opacity-60">{format(todo.createdAt?.toDate ? todo.createdAt.toDate() : new Date(), 'HH:mm')}</span>
-                          </div>
-
-                          {todo.subtasks && todo.subtasks.length > 0 && (
-                            <div className="mt-3 space-y-1 pl-2 border-l-2 border-primary/20">
-                              {todo.subtasks.map((st, idx) => (
-                                <div key={idx} className="flex items-center gap-2 text-sm text-muted-foreground py-0.5">
-                                  <span className="w-1 h-1 rounded-full bg-primary/40 shrink-0" />
-                                  <span>{st}</span>
-                                </div>
-                              ))}
-                            </div>
+              {filteredTodos?.map((todo) => (
+                <Card 
+                  key={todo.id} 
+                  className={cn(
+                    "todo-card transition-all duration-300 group hover:translate-x-1 border-l-4",
+                    todo.completed ? "border-l-green-500 opacity-70" : 
+                    todo.priority === 'high' ? "border-l-rose-500" :
+                    todo.priority === 'medium' ? "border-l-amber-500" : "border-l-blue-500"
+                  )}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-4">
+                      <button 
+                        onClick={() => toggleTodo(todo)}
+                        className={cn(
+                          "mt-1 shrink-0 transition-colors",
+                          todo.completed ? "text-green-500" : "text-muted-foreground hover:text-primary"
+                        )}
+                      >
+                        {todo.completed ? <CheckCircle2 className="h-6 w-6" /> : <Circle className="h-6 w-6" />}
+                      </button>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center flex-wrap gap-2 mb-1">
+                          <p className={cn(
+                            "text-lg font-medium break-words",
+                            todo.completed && "line-through text-muted-foreground"
+                          )}>
+                            {todo.title}
+                          </p>
+                          {todo.priority && (
+                            <Badge variant="outline" className={cn("text-[10px] h-5 uppercase px-2", PRIORITY_COLORS[todo.priority])}>
+                              {todo.priority}
+                            </Badge>
                           )}
                         </div>
-
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={async () => {
-                              setBreakingDownId(todo.id);
-                              try {
-                                const subtasks = await aiTaskBreakdown(todo.title);
-                                const docRef = doc(db!, "users", user!.uid, "todos", todo.id);
-                                updateDocumentNonBlocking(docRef, { subtasks });
-                              } catch (e) {
-                                toast({ variant: "destructive", title: "AI Error", description: "Could not split task." });
-                              } finally {
-                                setBreakingDownId(null);
-                              }
-                            }}
-                            disabled={breakingDownId === todo.id || todo.completed}
-                            className="text-secondary hover:bg-secondary/10"
-                          >
-                            {breakingDownId === todo.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => {
-                              const docRef = doc(db!, "users", user!.uid, "todos", todo.id);
-                              deleteDocumentNonBlocking(docRef);
-                            }}
-                            className="text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                        
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          {todo.dueDate && (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" /> {format(parseISO(todo.dueDate), 'MMM d')}
+                            </span>
+                          )}
+                          {todo.isDaily && (
+                            <span className="flex items-center gap-1 text-primary">
+                              <Zap className="h-3 w-3" /> Streak: {todo.streakDays || 0}
+                            </span>
+                          )}
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={async () => {
+                          setBreakingDownId(todo.id);
+                          try {
+                            const subtasks = await aiTaskBreakdown(todo.title);
+                            const docRef = doc(db!, "users", user!.uid, "todos", todo.id);
+                            updateDocumentNonBlocking(docRef, { subtasks });
+                          } finally {
+                            setBreakingDownId(null);
+                          }
+                        }}
+                        disabled={breakingDownId === todo.id || todo.completed}
+                        className="text-secondary hover:bg-secondary/10"
+                      >
+                        {breakingDownId === todo.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </ScrollArea>
         </div>

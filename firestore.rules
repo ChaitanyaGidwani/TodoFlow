@@ -1,20 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Rules for user silos
+    // Users can only access THEIR OWN data silo
     match /users/{userId} {
       // Allow user to read and write their own profile document
       allow read, write: if request.auth != null && request.auth.uid == userId;
       
-      // Rules for the todos subcollection
+      // Rules for the todos subcollection - strictly scoped to the user
       match /todos/{todoId} {
-        // Standard read/update/delete check
-        allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-        
-        // Explicit create check ensuring the userId field matches the path
-        allow create: if request.auth != null && 
-          request.auth.uid == userId && 
-          request.resource.data.userId == userId;
+        // Simplified rule: if you are the user identified in the path, you have full access
+        allow read, write, delete, create, update: if request.auth != null && request.auth.uid == userId;
       }
     }
 

@@ -53,6 +53,7 @@ export default function ProfilePage() {
 
   const historyQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
+    // Strictly path-based subcollection query
     return query(
       collection(db, "users", user.uid, "todos"),
       where("completed", "==", true),
@@ -97,10 +98,10 @@ export default function ProfilePage() {
 
   const exportCSV = () => {
     if (!filteredHistory.length) return;
-    const headers = ["Title", "Completion Date", "Streak Earned"];
+    const headers = ["Task", "Date Completed", "Streak Earned"];
     const rows = filteredHistory.map(item => [
       `"${item.title}"`,
-      format(item.lastCompletedDate?.toDate ? item.lastCompletedDate.toDate() : new Date(), "yyyy-MM-dd HH:mm"),
+      format(item.lastCompletedDate?.toDate ? item.lastCompletedDate.toDate() : new Date(), "yyyy-MM-dd"),
       item.streakDays || 0
     ]);
     
@@ -109,8 +110,7 @@ export default function ProfilePage() {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `todoflow_history_${format(new Date(), "yyyy_MM_dd")}.csv`);
-    link.style.visibility = "hidden";
+    link.setAttribute("download", `todoflow_log.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -133,12 +133,12 @@ export default function ProfilePage() {
     <div className="max-w-5xl mx-auto p-4 sm:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <header className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-primary/10 rounded-2xl animate-teddy">
+          <div className="p-3 bg-primary/10 rounded-2xl">
             <TeddyIcon variant="profile" size={36} />
           </div>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Hi, {user.email?.split('@')[0]} 🐻</h1>
-            <p className="text-muted-foreground text-sm">Your productivity sanctuary.</p>
+            <p className="text-muted-foreground text-sm">Your productivity archive.</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -174,29 +174,13 @@ export default function ProfilePage() {
           <Card className="todo-card border-none">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Palette className="h-5 w-5 text-primary" /> Theme
+                <Palette className="h-5 w-5 text-primary" /> Display
               </CardTitle>
             </CardHeader>
             <CardContent className="flex items-center justify-between">
-              <span className="font-medium text-sm">Night Mode</span>
+              <span className="font-medium text-sm">Dark Mode</span>
               <Button variant="outline" size="icon" onClick={toggleTheme} className="rounded-xl">
                 {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="todo-card border-none">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Shield className="h-5 w-5 text-secondary" /> Privacy
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button variant="ghost" className="w-full justify-start text-sm hover:bg-white/10 rounded-xl">
-                Change Password
-              </Button>
-              <Button variant="ghost" className="w-full justify-start text-sm hover:bg-white/10 rounded-xl">
-                Two-Factor Auth
               </Button>
             </CardContent>
           </Card>
@@ -205,20 +189,14 @@ export default function ProfilePage() {
         <div className="lg:col-span-2 space-y-4">
           <Card className="todo-card border-none shadow-xl">
             <CardHeader>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <CardTitle className="text-xl flex items-center gap-2">
-                    <History className="h-6 w-6 text-primary" /> Completion History
-                  </CardTitle>
-                  <CardDescription>Review all your pawsome achievements.</CardDescription>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <History className="h-6 w-6 text-primary" /> Completion History
+              </CardTitle>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
-                    placeholder="Search by task name..." 
+                    placeholder="Search past tasks..." 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-9 bg-white/10 border-white/10"
@@ -229,14 +207,14 @@ export default function ProfilePage() {
                     type="date" 
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="bg-white/10 border-white/10 text-xs"
+                    className="bg-white/10 border-white/10 text-xs h-10"
                   />
                   <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input 
                     type="date" 
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="bg-white/10 border-white/10 text-xs"
+                    className="bg-white/10 border-white/10 text-xs h-10"
                   />
                 </div>
               </div>
@@ -245,14 +223,13 @@ export default function ProfilePage() {
               <ScrollArea className="h-[500px] pr-4">
                 <div className="space-y-3">
                   {isLoading && (
-                    <div className="text-center py-20">
-                      <History className="h-10 w-10 animate-spin text-primary/20 mx-auto" />
+                    <div className="flex justify-center py-20">
+                      <Loader2 className="h-10 w-10 animate-spin text-primary/50" />
                     </div>
                   )}
                   {!isLoading && filteredHistory.length === 0 && (
-                    <div className="text-center py-20 border-2 border-dashed border-primary/10 rounded-3xl">
-                      <TeddyIcon variant="paw" size={48} className="mx-auto mb-4 opacity-10" />
-                      <p className="text-muted-foreground italic">No history found for these filters.</p>
+                    <div className="text-center py-20 border border-dashed border-primary/20 rounded-3xl">
+                      <p className="text-muted-foreground italic">No history matches these filters.</p>
                     </div>
                   )}
                   {filteredHistory.map((item) => (
@@ -262,21 +239,18 @@ export default function ProfilePage() {
                     >
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                          <Trophy className="h-5 w-5" />
+                          <History className="h-5 w-5" />
                         </div>
                         <div>
                           <p className="font-semibold text-sm">{item.title}</p>
-                          <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                            <Calendar className="h-3 w-3" /> 
-                            {format(item.lastCompletedDate?.toDate ? item.lastCompletedDate.toDate() : new Date(), "PPP 'at' p")}
+                          <p className="text-[10px] text-muted-foreground">
+                            {format(item.lastCompletedDate?.toDate ? item.lastCompletedDate.toDate() : new Date(), "PPP")}
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[10px]">
-                          Streak +{item.streakDays || 0}
-                        </Badge>
-                      </div>
+                      <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[10px]">
+                        Streak +{item.streakDays || 0}
+                      </Badge>
                     </div>
                   ))}
                 </div>
