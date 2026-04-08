@@ -1,20 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can only access THEIR OWN data silo
-    match /users/{userId} {
-      // Allow user to read and write their own profile document
+    // Bulletproof recursive rule for user-specific data silos
+    // This allows the user to read/write their own document and ALL subcollections/descendants
+    match /users/{userId}/{allPaths=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      // Rules for the todos subcollection - strictly scoped to the user
-      match /todos/{document} {
-        // Explicitly allow list and read for collection queries and single doc fetches
-        // Explicitly allow write operations (create, update, delete)
-        allow list, read, write, create, update, delete: if request.auth != null && request.auth.uid == userId;
-      }
     }
 
-    // Default deny for everything else
+    // Default deny for everything else to maintain strict security
     match /{path=**} {
       allow read, write: if false;
     }

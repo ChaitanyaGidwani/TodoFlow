@@ -6,7 +6,7 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword
 } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth, useUser, useFirestore } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,12 +48,12 @@ export default function LandingPage() {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        // Initialize the user document to ensure security rules pass smoothly.
-        // We write to the specific user document path that our rules protect.
+        // Explicitly initialize the user document to ensure security rules and data integrity.
+        // We use serverTimestamp for consistency.
         await setDoc(doc(db, "users", userCredential.user.uid), {
           email: userCredential.user.email,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
           userId: userCredential.user.uid
         });
       }
