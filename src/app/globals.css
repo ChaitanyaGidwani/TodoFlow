@@ -7,13 +7,13 @@
   :root {
     --background: 180 47% 95%;
     --foreground: 240 10% 3.9%;
-    --card: 0 0% 100% / 0.8;
+    --card: 0 0% 100% / 0.85;
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 261 59% 44%; /* #5C2EB3 */
+    --primary: 261 59% 44%; 
     --primary-foreground: 0 0% 98%;
-    --secondary: 219 70% 50%; /* #2666D9 */
+    --secondary: 219 70% 50%;
     --secondary-foreground: 0 0% 98%;
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
@@ -24,7 +24,7 @@
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
     --ring: 261 59% 44%;
-    --radius: 1rem;
+    --radius: 1.25rem;
   }
 }
 
@@ -39,9 +39,14 @@
 }
 
 .todo-card {
-  @apply backdrop-blur-md bg-white/80 shadow-lg border-white/20 transition-all duration-300;
+  @apply backdrop-blur-xl bg-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.05)] border-white/40 transition-all duration-300;
 }
 
 .gradient-btn {
-  @apply bg-gradient-to-r from-[#5C2EB3] to-[#2666D9] text-white hover:opacity-90 transition-opacity;
+  @apply bg-gradient-to-r from-[#5C2EB3] to-[#2666D9] text-white hover:opacity-90 shadow-md transition-all active:scale-[0.98];
+}
+
+/* Recharts Customizations */
+.recharts-cartesian-grid-horizontal line {
+  stroke: rgba(0,0,0,0.05);
 }
