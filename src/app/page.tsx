@@ -6,7 +6,8 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword
 } from "firebase/auth";
-import { useAuth, useUser } from "@/firebase";
+import { doc, setDoc } from "firebase/firestore";
+import { useAuth, useUser, useFirestore } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -20,9 +21,11 @@ export default function LandingPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
+  const db = useFirestore();
   const { user, isUserLoading } = useUser();
 
   useEffect(() => {
@@ -30,23 +33,29 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
-    if (mounted && user) {
+    if (mounted && user && !loading) {
       router.push("/dashboard");
     }
-  }, [mounted, user, router]);
+  }, [mounted, user, router, loading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) return;
+    if (!auth || !db) return;
     
     setLoading(true);
     try {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        // Initialize the user document to ensure security rules pass smoothly
+        await setDoc(doc(db, "users", userCredential.user.uid), {
+          email: userCredential.user.email,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
       }
-      router.push("/dashboard");
+      // Redirection is handled by the useEffect watching the user state
     } catch (error: any) {
       let message = "An unexpected error occurred.";
       if (error.code === 'auth/invalid-api-key') {
@@ -64,7 +73,6 @@ export default function LandingPage() {
         title: "Authentication Error",
         description: message,
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -107,6 +115,7 @@ export default function LandingPage() {
                 required 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
@@ -117,6 +126,7 @@ export default function LandingPage() {
                 required 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete={isLogin ? "current-password" : "new-password"}
               />
             </div>
           </CardContent>
@@ -130,6 +140,7 @@ export default function LandingPage() {
               variant="link" 
               className="text-secondary"
               onClick={() => setIsLogin(!isLogin)}
+              disabled={loading}
             >
               {isLogin ? "Don't have an account? Sign up" : "Already have an account? Login"}
             </Button>
