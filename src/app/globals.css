@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -25,6 +24,26 @@
     --input: 240 5.9% 90%;
     --ring: 261 59% 44%;
     --radius: 1.25rem;
+    
+    --bg-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 50%, #b5acc6 100%);
+    --teddy-color: #8b5e3c;
+    --glow: transparent;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 10% / 0.95;
+    --card-foreground: 0 0% 98%;
+    --primary: 263 70% 70%;
+    --primary-foreground: 240 10% 3.9%;
+    --secondary: 219 70% 60%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    
+    --bg-gradient: linear-gradient(135deg, #0f0f23 0%, #2a1b3d 50%, #1a0f2e 100%);
+    --teddy-color: #a78bfa;
+    --glow: 0 0 15px rgba(167, 139, 250, 0.4);
   }
 }
 
@@ -33,20 +52,35 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground antialiased min-h-screen;
-    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 50%, #b5acc6 100%) fixed;
+    @apply text-foreground antialiased min-h-screen transition-colors duration-300;
+    background: var(--bg-gradient) fixed;
   }
 }
 
 .todo-card {
-  @apply backdrop-blur-xl bg-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.05)] border-white/40 transition-all duration-300;
+  @apply backdrop-blur-xl bg-card shadow-[0_8px_32px_rgba(0,0,0,0.05)] border-white/20 transition-all duration-300;
+  box-shadow: var(--glow);
 }
 
 .gradient-btn {
-  @apply bg-gradient-to-r from-[#5C2EB3] to-[#2666D9] text-white hover:opacity-90 shadow-md transition-all active:scale-[0.98];
+  @apply bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90 shadow-md transition-all active:scale-[0.98];
 }
 
-/* Recharts Customizations */
-.recharts-cartesian-grid-horizontal line {
-  stroke: rgba(0,0,0,0.05);
+.nav-item {
+  @apply flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all duration-200;
+}
+
+.nav-item-active {
+  @apply text-primary bg-primary/10;
+}
+
+/* Custom Teddy Animation */
+@keyframes teddy-dance {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  25% { transform: translateY(-5px) rotate(-5deg); }
+  75% { transform: translateY(-5px) rotate(5deg); }
+}
+
+.animate-teddy {
+  animation: teddy-dance 1.5s infinite ease-in-out;
 }

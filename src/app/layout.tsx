@@ -1,11 +1,14 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
+import { ThemeProvider } from '@/components/ThemeProvider';
+import { Navigation } from '@/components/Navigation';
 
 export const metadata: Metadata = {
   title: 'TodoFlow - Streamline Your Tasks',
-  description: 'A modern, AI-powered todo app built with Next.js and Firebase.',
+  description: 'A modern, AI-powered todo app with Teddy Bear vibes.',
 };
 
 export default function RootLayout({
@@ -21,10 +24,17 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
-        <FirebaseClientProvider>
-          {children}
-          <Toaster />
-        </FirebaseClientProvider>
+        <ThemeProvider>
+          <FirebaseClientProvider>
+            <div className="flex min-h-screen">
+              <Navigation />
+              <main className="flex-1 md:ml-20 mb-16 md:mb-0 transition-all duration-300">
+                {children}
+              </main>
+            </div>
+            <Toaster />
+          </FirebaseClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
