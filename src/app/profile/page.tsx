@@ -1,34 +1,94 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { useAuth, useUser } from "@/firebase";
+import { collection, query, where, orderBy } from "firebase/firestore";
+import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { TeddyIcon } from "@/components/TeddyIcons";
 import { useTheme } from "@/components/ThemeProvider";
 import { 
   LogOut, 
   Settings, 
-  User as UserIcon, 
   Sun, 
   Moon, 
   History,
   Shield,
-  Palette
+  Palette,
+  Download,
+  Search,
+  Calendar,
+  Filter,
+  Trophy,
+  ArrowRight
 } from "lucide-react";
+import { format, isWithinInterval, parseISO, startOfDay, endOfDay } from "date-fns";
+
+interface Todo {
+  id: string;
+  title: string;
+  completed: boolean;
+  createdAt: any;
+  lastCompletedDate?: any;
+  streakDays?: number;
+}
 
 export default function ProfilePage() {
   const [mounted, setMounted] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  
   const router = useRouter();
   const auth = useAuth();
+  const db = useFirestore();
   const { user, isUserLoading } = useUser();
   const { theme, toggleTheme } = useTheme();
 
   useEffect(() => { setMounted(true); }, []);
-  if (!mounted || isUserLoading) return null;
-  if (!user) { router.push("/"); return null; }
+
+  const historyQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return query(
+      collection(db, "users", user.uid, "todos"),
+      where("completed", "==", true),
+      orderBy("lastCompletedDate", "desc")
+    );
+  }, [db, user]);
+
+  const { data: history, isLoading } = useCollection<Todo>(historyQuery);
+
+  const filteredHistory = useMemo(() => {
+    if (!history) return [];
+    return history.filter(item => {
+      const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      if (!startDate && !endDate) return matchesSearch;
+      
+      const itemDate = item.lastCompletedDate?.toDate ? item.lastCompletedDate.toDate() : new Date();
+      const start = startDate ? startOfDay(parseISO(startDate)) : new Date(0);
+      const end = endDate ? endOfDay(parseISO(endDate)) : new Date();
+      
+      return matchesSearch && isWithinInterval(itemDate, { start, end });
+    });
+  }, [history, searchTerm, startDate, endDate]);
+
+  const stats = useMemo(() => {
+    if (!history) return { total: 0, avgStreak: 0, maxStreak: 0 };
+    const total = history.length;
+    const totalStreak = history.reduce((acc, curr) => acc + (curr.streakDays || 0), 0);
+    const maxStreak = Math.max(...history.map(h => h.streakDays || 0), 0);
+    return {
+      total,
+      avgStreak: total > 0 ? (totalStreak / total).toFixed(1) : 0,
+      maxStreak
+    };
+  }, [history]);
 
   const handleLogout = async () => {
     if (!auth) return;
@@ -36,71 +96,187 @@ export default function ProfilePage() {
     router.push("/");
   };
 
+  const exportCSV = () => {
+    if (!filteredHistory.length) return;
+    const headers = ["Title", "Completion Date", "Streak Earned"];
+    const rows = filteredHistory.map(item => [
+      `"${item.title}"`,
+      format(item.lastCompletedDate?.toDate ? item.lastCompletedDate.toDate() : new Date(), "yyyy-MM-dd HH:mm"),
+      item.streakDays || 0
+    ]);
+    
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `todoflow_history_${format(new Date(), "yyyy_MM_dd")}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  if (!mounted || isUserLoading) return null;
+  if (!user) { router.push("/"); return null; }
+
   return (
-    <div className="max-w-2xl mx-auto p-4 sm:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <header className="flex items-center gap-3">
-        <div className="p-3 bg-primary/10 rounded-2xl">
-          <TeddyIcon variant="profile" size={32} />
+    <div className="max-w-5xl mx-auto p-4 sm:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <header className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-primary/10 rounded-2xl animate-teddy">
+            <TeddyIcon variant="profile" size={36} />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Hi, {user.email?.split('@')[0]} 🐻</h1>
+            <p className="text-muted-foreground text-sm">Your productivity sanctuary.</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
-          <p className="text-muted-foreground text-sm">Customize your Teddy experience.</p>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportCSV} className="rounded-xl gap-2">
+            <Download className="h-4 w-4" /> Export CSV
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-destructive hover:bg-destructive/10">
+            <LogOut className="h-5 w-5" />
+          </Button>
         </div>
       </header>
 
-      <Card className="todo-card border-none overflow-hidden">
-        <div className="h-24 bg-gradient-to-r from-primary/30 to-secondary/30" />
-        <CardContent className="p-6 -mt-12">
-          <div className="flex flex-col items-center text-center">
-            <div className="h-24 w-24 rounded-full bg-card border-4 border-background flex items-center justify-center shadow-xl">
-              <TeddyIcon size={48} variant="profile" />
-            </div>
-            <h2 className="text-2xl font-bold mt-4">{user.email?.split('@')[0]}</h2>
-            <p className="text-muted-foreground text-sm">{user.email}</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column: Settings & Stats */}
+        <div className="space-y-6">
+          <Card className="todo-card border-none bg-gradient-to-br from-primary/10 to-secondary/10">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-amber-500" /> Bear Stats
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4">
+              <div className="p-3 bg-white/40 rounded-xl text-center">
+                <p className="text-2xl font-bold text-primary">{stats.total}</p>
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">Total Done</p>
+              </div>
+              <div className="p-3 bg-white/40 rounded-xl text-center">
+                <p className="text-2xl font-bold text-secondary">{stats.avgStreak}</p>
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">Avg Streak</p>
+              </div>
+            </CardContent>
+          </Card>
 
-      <div className="grid gap-4">
-        <Card className="todo-card border-none">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Palette className="h-5 w-5 text-primary" /> Appearance
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between">
-            <div className="flex flex-col">
-              <span className="font-medium">Dark Mode</span>
-              <span className="text-xs text-muted-foreground">Toggle between Day and Night themes</span>
-            </div>
-            <Button variant="outline" size="icon" onClick={toggleTheme} className="rounded-xl">
-              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </Button>
-          </CardContent>
-        </Card>
+          <Card className="todo-card border-none">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Palette className="h-5 w-5 text-primary" /> Theme
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between">
+              <span className="font-medium text-sm">Night Mode</span>
+              <Button variant="outline" size="icon" onClick={toggleTheme} className="rounded-xl">
+                {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </Button>
+            </CardContent>
+          </Card>
 
-        <Card className="todo-card border-none">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Shield className="h-5 w-5 text-secondary" /> Account
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-white/10">
-              <History className="h-5 w-5" /> Completion History
-            </Button>
-            <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl hover:bg-white/10">
-              <Settings className="h-5 w-5" /> Settings
-            </Button>
-            <Button 
-              variant="ghost" 
-              onClick={handleLogout}
-              className="w-full justify-start gap-3 rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive"
-            >
-              <LogOut className="h-5 w-5" /> Logout
-            </Button>
-          </CardContent>
-        </Card>
+          <Card className="todo-card border-none">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Shield className="h-5 w-5 text-secondary" /> Privacy
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button variant="ghost" className="w-full justify-start text-sm hover:bg-white/10 rounded-xl">
+                Change Password
+              </Button>
+              <Button variant="ghost" className="w-full justify-start text-sm hover:bg-white/10 rounded-xl">
+                Two-Factor Auth
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column: Completion History */}
+        <div className="lg:col-span-2 space-y-4">
+          <Card className="todo-card border-none shadow-xl">
+            <CardHeader>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <History className="h-6 w-6 text-primary" /> Completion History
+                  </CardTitle>
+                  <CardDescription>Review all your pawsome achievements.</CardDescription>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search by task name..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 bg-white/10 border-white/10"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input 
+                    type="date" 
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="bg-white/10 border-white/10 text-xs"
+                  />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Input 
+                    type="date" 
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="bg-white/10 border-white/10 text-xs"
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[500px] pr-4">
+                <div className="space-y-3">
+                  {isLoading && (
+                    <div className="text-center py-20">
+                      <History className="h-10 w-10 animate-spin text-primary/20 mx-auto" />
+                    </div>
+                  )}
+                  {!isLoading && filteredHistory.length === 0 && (
+                    <div className="text-center py-20 border-2 border-dashed border-primary/10 rounded-3xl">
+                      <TeddyIcon variant="paw" size={48} className="mx-auto mb-4 opacity-10" />
+                      <p className="text-muted-foreground italic">No history found for these filters.</p>
+                    </div>
+                  )}
+                  {filteredHistory.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className="p-4 rounded-2xl bg-white/20 border border-white/20 flex items-center justify-between group hover:bg-white/40 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                          <Trophy className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm">{item.title}</p>
+                          <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            <Calendar className="h-3 w-3" /> 
+                            {format(item.lastCompletedDate?.toDate ? item.lastCompletedDate.toDate() : new Date(), "PPP 'at' p")}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[10px]">
+                          Streak +{item.streakDays || 0}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

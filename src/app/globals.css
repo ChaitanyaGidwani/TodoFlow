@@ -26,8 +26,9 @@
     --radius: 1.25rem;
     
     --bg-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 50%, #b5acc6 100%);
-    --teddy-color: #8b5e3c;
-    --glow: transparent;
+    --teddy-color-1: #8b5cf6;
+    --teddy-color-2: #3b82f6;
+    --teddy-glow: none;
   }
 
   .dark {
@@ -42,8 +43,9 @@
     --input: 240 3.7% 15.9%;
     
     --bg-gradient: linear-gradient(135deg, #0f0f23 0%, #2a1b3d 50%, #1a0f2e 100%);
-    --teddy-color: #a78bfa;
-    --glow: 0 0 15px rgba(167, 139, 250, 0.4);
+    --teddy-color-1: #a78bfa;
+    --teddy-color-2: #c084fc;
+    --teddy-glow: drop-shadow(0 0 8px rgba(167, 139, 250, 0.6));
   }
 }
 
@@ -59,7 +61,6 @@
 
 .todo-card {
   @apply backdrop-blur-xl bg-card shadow-[0_8px_32px_rgba(0,0,0,0.05)] border-white/20 transition-all duration-300;
-  box-shadow: var(--glow);
 }
 
 .gradient-btn {
@@ -74,7 +75,10 @@
   @apply text-primary bg-primary/10;
 }
 
-/* Custom Teddy Animation */
+.teddy-icon-svg {
+  filter: var(--teddy-glow);
+}
+
 @keyframes teddy-dance {
   0%, 100% { transform: translateY(0) rotate(0); }
   25% { transform: translateY(-5px) rotate(-5deg); }

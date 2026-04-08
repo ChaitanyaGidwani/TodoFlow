@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -12,7 +11,8 @@ import {
   Flame, 
   User, 
   Sun, 
-  Moon 
+  Moon,
+  Settings
 } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { Button } from "./ui/button";
@@ -27,10 +27,10 @@ export function Navigation() {
   }, []);
 
   const navItems = [
-    { label: "Dash", href: "/dashboard", icon: <LayoutDashboard className="h-5 w-5" />, teddy: "dashboard" },
-    { label: "Todos", href: "/todos", icon: <CheckSquare className="h-5 w-5" />, teddy: "todos" },
-    { label: "Streaks", href: "/streaks", icon: <Flame className="h-5 w-5" />, teddy: "streaks" },
-    { label: "Me", href: "/profile", icon: <User className="h-5 w-5" />, teddy: "profile" },
+    { label: "Dashboard", href: "/dashboard", variant: "dashboard" as const },
+    { label: "Todos", href: "/todos", variant: "todos" as const },
+    { label: "Streaks", href: "/streaks", variant: "streaks" as const },
+    { label: "Profile", href: "/profile", variant: "profile" as const },
   ];
 
   if (pathname === "/" || pathname === "/login") return null;
@@ -39,12 +39,12 @@ export function Navigation() {
     <>
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-20 bg-card/80 backdrop-blur-xl border-r border-white/20 z-50">
-        <div className="flex-1 flex flex-col items-center py-8 gap-8">
-          <div className="p-2 bg-primary/10 rounded-2xl animate-teddy">
+        <div className="flex-1 flex flex-col items-center py-8 gap-10">
+          <Link href="/dashboard" className="p-2 bg-primary/10 rounded-2xl animate-teddy">
             <TeddyIcon size={32} variant="paw" />
-          </div>
+          </Link>
           
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-6">
             {navItems.map((item) => (
               <Link 
                 key={item.href} 
@@ -54,12 +54,12 @@ export function Navigation() {
                   pathname === item.href && "nav-item-active"
                 )}
               >
-                <TeddyIcon variant={item.teddy as any} size={24} />
-                <span className="text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                <TeddyIcon variant={item.variant} size={28} />
+                <span className="text-[10px] font-bold mt-1 scale-0 group-hover:scale-100 transition-transform">
                   {item.label}
                 </span>
                 {pathname === item.href && (
-                  <div className="absolute left-0 w-1 h-8 bg-primary rounded-r-full" />
+                  <div className="absolute left-[-8px] w-1.5 h-8 bg-primary rounded-r-full" />
                 )}
               </Link>
             ))}
@@ -90,8 +90,8 @@ export function Navigation() {
               pathname === item.href && "nav-item-active"
             )}
           >
-            <TeddyIcon variant={item.teddy as any} size={22} />
-            <span className="text-[10px] font-medium">{item.label}</span>
+            <TeddyIcon variant={item.variant} size={24} />
+            <span className="text-[10px] font-bold">{item.label}</span>
           </Link>
         ))}
       </nav>
