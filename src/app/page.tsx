@@ -48,14 +48,14 @@ export default function LandingPage() {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        // Initialize the user document to ensure security rules pass smoothly
+        // Initialize the user document to ensure security rules pass smoothly.
+        // We write to the specific user document path that our rules protect.
         await setDoc(doc(db, "users", userCredential.user.uid), {
           email: userCredential.user.email,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         });
       }
-      // Redirection is handled by the useEffect watching the user state
     } catch (error: any) {
       let message = "An unexpected error occurred.";
       if (error.code === 'auth/invalid-api-key') {
@@ -66,6 +66,8 @@ export default function LandingPage() {
         message = "This email is already registered.";
       } else if (error.code === 'auth/weak-password') {
         message = "Password should be at least 6 characters.";
+      } else if (error.code === 'permission-denied') {
+        message = "You don't have permission to perform this action.";
       }
       
       toast({
