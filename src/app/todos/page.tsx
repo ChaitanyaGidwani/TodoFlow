@@ -35,15 +35,13 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, 
   Trash2, 
-  Sparkles, 
   Loader2, 
   CheckCircle2, 
   Circle,
   Wand2,
   Calendar,
   Zap,
-  Search,
-  Filter
+  Search
 } from "lucide-react";
 import { TeddyIcon } from "@/components/TeddyIcons";
 import { aiTaskBreakdown } from "@/ai/flows/ai-task-breakdown";
@@ -99,8 +97,18 @@ export default function TodosPage() {
     setMounted(true);
   }, []);
 
-  if (!mounted || isUserLoading) return null;
-  if (!user) { router.push("/"); return null; }
+  if (!mounted || isUserLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) { 
+    router.push("/"); 
+    return null; 
+  }
 
   const handleAddTodo = (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,12 +157,8 @@ export default function TodosPage() {
             <p className="text-muted-foreground text-sm">Pawsitive productivity starts here!</p>
           </div>
         </div>
-        <Button size="icon" variant="ghost" className="rounded-full md:hidden">
-          <Filter className="h-5 w-5" />
-        </Button>
       </header>
 
-      {/* Add Task Card */}
       <Card className="todo-card border-none overflow-hidden group">
         <CardContent className="p-6">
           <form onSubmit={handleAddTodo} className="space-y-4">
@@ -199,7 +203,6 @@ export default function TodosPage() {
         </CardContent>
       </Card>
 
-      {/* Search & Filter */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -223,7 +226,6 @@ export default function TodosPage() {
         </Select>
       </div>
 
-      {/* List */}
       <ScrollArea className="h-[600px] rounded-3xl">
         <div className="space-y-3">
           {isLoading && (

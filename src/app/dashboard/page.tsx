@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -9,8 +8,7 @@ import {
   doc, 
   serverTimestamp,
   orderBy,
-  query,
-  Timestamp
+  query
 } from "firebase/firestore";
 import { 
   useAuth, 
@@ -24,7 +22,7 @@ import {
 } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -48,7 +46,6 @@ import {
   Trophy,
   Zap,
   Calendar,
-  AlertCircle,
   TrendingUp,
   PieChart as PieChartIcon,
   BarChart3
@@ -63,13 +60,11 @@ import {
   ResponsiveContainer, 
   PieChart, 
   Pie, 
-  Cell,
-  BarChart,
-  Bar
+  Cell
 } from "recharts";
 import { aiTaskBreakdown } from "@/ai/flows/ai-task-breakdown";
 import { cn } from "@/lib/utils";
-import { format, isToday, isYesterday, parseISO, startOfDay, differenceInDays } from "date-fns";
+import { format, isToday, isYesterday, parseISO } from "date-fns";
 
 interface Todo {
   id: string;
@@ -123,12 +118,6 @@ export default function Dashboard() {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (mounted && !isUserLoading && !user) {
-      router.push("/");
-    }
-  }, [mounted, user, isUserLoading, router]);
-
   const stats = useMemo(() => {
     if (!todos) return null;
     const completedCount = todos.filter(t => t.completed).length;
@@ -176,7 +165,6 @@ export default function Dashboard() {
   const toggleTodo = (todo: Todo) => {
     if (!db || !user) return;
     const docRef = doc(db, "users", user.uid, "todos", todo.id);
-    const now = new Date();
     
     let updates: Partial<Todo> = { completed: !todo.completed };
 
@@ -244,7 +232,6 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="todo-card border-none shadow-md">
             <CardContent className="p-4 flex items-center gap-4">
@@ -284,7 +271,6 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="todo-card border-none shadow-lg lg:col-span-2">
             <CardHeader>
@@ -298,9 +284,7 @@ export default function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12}} />
                   <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12}} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                  />
+                  <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                   <Line type="monotone" dataKey="streak" stroke="#5C2EB3" strokeWidth={3} dot={{r: 4, fill: '#5C2EB3'}} />
                 </LineChart>
               </ResponsiveContainer>
@@ -336,7 +320,6 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Add Task Card */}
         <Card className="todo-card border-none shadow-xl overflow-hidden">
           <CardContent className="p-6">
             <form onSubmit={handleAddTodo} className="space-y-4">
@@ -354,18 +337,16 @@ export default function Dashboard() {
                 </Button>
               </div>
               <div className="flex flex-wrap items-center gap-4 pt-2">
-                <div className="flex items-center gap-2">
-                  <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
-                    <SelectTrigger className="w-[120px] h-9 bg-white/50 border-white/20">
-                      <SelectValue placeholder="Priority" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
+                  <SelectTrigger className="w-[120px] h-9 bg-white/50 border-white/20">
+                    <SelectValue placeholder="Priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
                 <div className="flex items-center gap-2 bg-white/50 px-3 py-1.5 rounded-md border border-white/20">
                   <Checkbox id="daily" checked={isDaily} onCheckedChange={(v: any) => setIsDaily(v)} />
                   <label htmlFor="daily" className="text-sm font-medium cursor-pointer">Daily Task</label>
@@ -384,7 +365,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Main List */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold flex items-center gap-2">
