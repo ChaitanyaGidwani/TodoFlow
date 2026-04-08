@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "Todo": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Todo",
+      "type": "object",
+      "description": "Represents a single to-do item managed by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Todo entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who owns this to-do item, corresponding to the Firebase Authentication UID. (Relationship: User 1:N Todo)"
+        },
+        "title": {
+          "type": "string",
+          "description": "The main text or short description of the to-do item."
+        },
+        "description": {
+          "type": "string",
+          "description": "An optional, more detailed description of the to-do item, which can also store additional notes or AI-generated sub-tasks."
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Indicates whether the to-do item has been marked as complete."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the to-do item was created. Used for ordering by newest first.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the to-do item was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "title",
+        "completed",
+        "createdAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}/todos/{todoId}",
+        "definition": {
+          "entityName": "Todo",
+          "schema": {
+            "$ref": "#/backend/entities/Todo"
+          },
+          "description": "Stores individual to-do items, each owned by a specific user. The 'userId' field within the Todo document explicitly denormalizes ownership for authorization independence, complementing the path-based authorization. All documents in this collection share the same security posture: only the authenticated user matching the '{userId}' path segment and the 'userId' document field can read or write.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns this collection of to-do items, corresponding to the Firebase Authentication UID."
+            },
+            {
+              "name": "todoId",
+              "description": "The unique identifier for a specific to-do item within the user's collection."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to be secure, scalable, and highly debuggable, primarily by enforcing strong authorization independence and clear ownership. Each user's to-do items are stored in a dedicated subcollection under their unique user ID: `/users/{userId}/todos/{todoId}`. This design achieves **Authorization Independence** by ensuring that the `userId` from the path (`{userId}`) explicitly matches `request.auth.uid` and also that the `userId` field denormalized within the `Todo` document (`resource.data.userId`) also matches `request.auth.uid`. This triple-layered check (path, document field, and auth token) eliminates the need for any `get()` operations in security rules, allowing for atomic writes and simplified rule logic. The use of a dedicated `userId` field within each `Todo` document is a direct application of the denormalization mandate. \n\nThis structure also directly supports **Query-Aware Security Rules (QAPs)**. When a client requests data from `/users/{request.auth.uid}/todos`, all documents within that collection inherently belong to the authenticated user. This means that the security rules do not need to act as filters to remove unauthorized documents from a larger result set. Instead, the path itself enforces the access policy, guaranteeing that any `list` operation on this path will only return documents that the authenticated user is authorized to see. This 'structural segregation' ensures a homogeneous security posture for all documents within a given user's `todos` subcollection, making rules straightforward and efficient."
+  }
+}

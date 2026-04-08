@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * FIRESTORE SECURITY RULES DOCUMENTATION
+     *
+     * Core Philosophy:
+     * This ruleset enforces a strict "User-Ownership" model. Access to data is governed by a
+     * hierarchical structure where all user-specific data is nested under a unique user identifier.
+     *
+     * Data Structure:
+     * The primary data organization is /users/{userId}/todos/{todoId}. This structural
+     * segregation ensures that a user's data is naturally isolated from others, simplifying
+     * authorization logic and improving query performance.
+     *
+     * Key Security Decisions:
+     * 1. Authorization Independence: We use a "triple-check" strategy for todos. We verify the
+     *    authenticated UID against the URL path, the internal document field ('userId'), and
+     *    the auth token.
+     * 2. No Global Listing: Listing of users is strictly prohibited to prevent user enumeration.
+     * 3. Denormalization: The 'userId' is stored directly within every Todo document. This allows
+     *    us to verify ownership during writes without performing expensive 'get()' lookups.
+     * 4. Relational Integrity: On creation, we ensure the document's 'userId' field matches the 
+     *    path and the authenticated user. On update, we ensure this field remains immutable.
+     */
+
+    // --- Helper Functions ---
+
+    /** @description Checks if the request is from an authenticated user. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** @description Checks if the authenticated user's UID matches the provided userId. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** @description Checks if the user is the owner and the document exists (for updates/deletes). */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Rules for the root user document. Allows users to manage their own profile.
+     * @path /users/{userId}
+     * @allow (get) If the authenticated user matches the document ID.
+     * @deny (list) Global user listing is always prohibited.
+     * @principle Self-creation and ownership-based access.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description Rules for Todo items. Implements the "Authorization Independence" pattern.
+       * @path /users/{userId}/todos/{todoId}
+       * @allow (create) If user is owner and document 'userId' matches their UID.
+       * @deny (update) If user attempts to change the 'userId' field of an existing todo.
+       * @principle Path-based and field-based ownership validation.
+       */
+      match /todos/{todoId} {
+        allow get, list: if isOwner(userId);
+        
+        allow create: if isOwner(userId) 
+          && request.resource.data.userId == userId;
+
+        allow update: if isExistingOwner(userId) 
+          && request.resource.data.userId == resource.data.userId;
+
+        allow delete: if isExistingOwner(userId);
+      }
+    }
+
+    // Default deny for any paths not explicitly matched
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
