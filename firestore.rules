@@ -5,31 +5,20 @@ service cloud.firestore {
     /**
      * FIRESTORE SECURITY RULES
      * 
-     * This ruleset enforces strict ownership. 
-     * Users can only read and write data under their own UID path.
+     * This ruleset enforces strict ownership using recursive wildcards. 
+     * Users have full access to their own data silo under /users/{userId}/...
      */
 
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    // Recursive match for all documents under a user's path
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
 
-    // Match the user's profile document
-    match /users/{userId} {
-      allow read, write: if isOwner(userId);
-
-      // Match the user's todo subcollection
-      match /todos/{todoId} {
-        // 'read' covers both 'get' (single doc) and 'list' (queries)
-        // 'write' covers 'create', 'update', and 'delete'
-        allow read, write: if isOwner(userId);
-      }
-    }
-
-    // Default deny
+    // Default deny for anything else
     match /{path=**} {
       allow read, write: if false;
     }
