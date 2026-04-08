@@ -2,25 +2,27 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { onAuthStateChanged, signOut, User } from "firebase/auth";
+import { signOut } from "firebase/auth";
 import { 
   collection, 
-  addDoc, 
-  query, 
-  where, 
-  orderBy, 
-  onSnapshot, 
-  updateDoc, 
-  deleteDoc, 
   doc, 
   serverTimestamp,
-  Timestamp 
+  orderBy,
+  query
 } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { 
+  useAuth, 
+  useFirestore, 
+  useUser, 
+  useCollection, 
+  useMemoFirebase,
+  addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+  deleteDocumentNonBlocking
+} from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -38,89 +40,82 @@ import { cn } from "@/lib/utils";
 
 interface Todo {
   id: string;
-  text: string;
+  title: string;
   completed: boolean;
-  createdAt: Timestamp;
+  createdAt: any;
   userId: string;
   subtasks?: string[];
 }
 
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [todos, setTodos] = useState<Todo[]>([]);
   const [newTodo, setNewTodo] = useState("");
   const [adding, setAdding] = useState(false);
   const [breakingDownId, setBreakingDownId] = useState<string | null>(null);
+  
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
+  const db = useFirestore();
+  const { user, isUserLoading } = useUser();
+
+  const todosQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return query(
+      collection(db, "users", user.uid, "todos"),
+      orderBy("createdAt", "desc")
+    );
+  }, [db, user]);
+
+  const { data: todos, isLoading: isTodosLoading } = useCollection<Todo>(todosQuery);
 
   useEffect(() => {
     setMounted(true);
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUser(user);
-        const q = query(
-          collection(db, "todos"),
-          where("userId", "==", user.uid),
-          orderBy("createdAt", "desc")
-        );
-        const unsubTodos = onSnapshot(q, (snapshot) => {
-          const items: Todo[] = [];
-          snapshot.forEach((doc) => {
-            items.push({ id: doc.id, ...doc.data() } as Todo);
-          });
-          setTodos(items);
-        });
-        return () => unsubTodos();
-      } else {
-        router.push("/");
-      }
-    });
-    return () => unsubscribe();
-  }, [router]);
+  }, []);
 
-  const handleAddTodo = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (mounted && !isUserLoading && !user) {
+      router.push("/");
+    }
+  }, [mounted, user, isUserLoading, router]);
+
+  const handleAddTodo = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTodo.trim() || !user) return;
+    if (!newTodo.trim() || !user || !db) return;
 
     setAdding(true);
-    try {
-      await addDoc(collection(db, "todos"), {
-        text: newTodo,
-        completed: false,
-        userId: user.uid,
-        createdAt: serverTimestamp(),
-      });
-      setNewTodo("");
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
-    } finally {
-      setAdding(false);
-    }
+    const colRef = collection(db, "users", user.uid, "todos");
+    
+    addDocumentNonBlocking(colRef, {
+      title: newTodo,
+      completed: false,
+      userId: user.uid,
+      createdAt: serverTimestamp(),
+    });
+    
+    setNewTodo("");
+    setAdding(false);
   };
 
-  const toggleTodo = async (id: string, completed: boolean) => {
-    try {
-      await updateDoc(doc(db, "todos", id), { completed: !completed });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
-    }
+  const toggleTodo = (todo: Todo) => {
+    if (!db || !user) return;
+    const docRef = doc(db, "users", user.uid, "todos", todo.id);
+    updateDocumentNonBlocking(docRef, { completed: !todo.completed });
   };
 
-  const deleteTodo = async (id: string) => {
-    try {
-      await deleteDoc(doc(db, "todos", id));
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
-    }
+  const deleteTodo = (id: string) => {
+    if (!db || !user) return;
+    const docRef = doc(db, "users", user.uid, "todos", id);
+    deleteDocumentNonBlocking(docRef);
   };
 
   const handleAIBreakdown = async (todo: Todo) => {
+    if (!db || !user) return;
     setBreakingDownId(todo.id);
     try {
-      const subtasks = await aiTaskBreakdown(todo.text);
-      await updateDoc(doc(db, "todos", todo.id), { subtasks });
+      const subtasks = await aiTaskBreakdown(todo.title);
+      const docRef = doc(db, "users", user.uid, "todos", todo.id);
+      updateDocumentNonBlocking(docRef, { subtasks });
       toast({ title: "AI Magic!", description: "Task broken down into actionable steps." });
     } catch (error: any) {
       toast({ variant: "destructive", title: "AI Error", description: "Could not generate breakdown." });
@@ -130,11 +125,12 @@ export default function Dashboard() {
   };
 
   const handleLogout = async () => {
+    if (!auth) return;
     await signOut(auth);
     router.push("/");
   };
 
-  if (!mounted) {
+  if (!mounted || isUserLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -145,7 +141,6 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6">
       <div className="max-w-3xl mx-auto space-y-6">
-        {/* Header */}
         <header className="flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-700">
           <div className="flex items-center gap-2">
             <Sparkles className="h-6 w-6 text-primary" />
@@ -159,7 +154,6 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Input area */}
         <Card className="todo-card animate-in fade-in zoom-in-95 duration-500 border-none shadow-xl">
           <CardContent className="pt-6">
             <form onSubmit={handleAddTodo} className="flex gap-2">
@@ -168,6 +162,7 @@ export default function Dashboard() {
                 value={newTodo}
                 onChange={(e) => setNewTodo(e.target.value)}
                 className="h-12 border-none bg-muted/50 focus-visible:ring-primary text-base"
+                disabled={adding}
               />
               <Button type="submit" size="icon" className="h-12 w-12 gradient-btn shrink-0" disabled={adding}>
                 {adding ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-6 w-6" />}
@@ -176,10 +171,14 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* List area */}
         <ScrollArea className="h-[calc(100vh-320px)] rounded-xl">
           <div className="space-y-3">
-            {todos.length === 0 && !adding && (
+            {(isTodosLoading) && (
+              <div className="flex justify-center py-10">
+                <Loader2 className="h-8 w-8 animate-spin text-primary opacity-50" />
+              </div>
+            )}
+            {!isTodosLoading && (!todos || todos.length === 0) && (
               <div className="text-center py-20 animate-in fade-in duration-1000">
                 <div className="flex justify-center mb-4">
                   <Circle className="h-12 w-12 text-muted-foreground opacity-20" />
@@ -187,7 +186,7 @@ export default function Dashboard() {
                 <p className="text-muted-foreground text-lg">Your flow is empty. Start by adding a task!</p>
               </div>
             )}
-            {todos.map((todo) => (
+            {todos?.map((todo) => (
               <Card 
                 key={todo.id} 
                 className={cn(
@@ -198,7 +197,7 @@ export default function Dashboard() {
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
                     <button 
-                      onClick={() => toggleTodo(todo.id, todo.completed)}
+                      onClick={() => toggleTodo(todo)}
                       className={cn(
                         "mt-1 shrink-0 transition-colors",
                         todo.completed ? "text-green-500" : "text-muted-foreground hover:text-primary"
@@ -212,7 +211,7 @@ export default function Dashboard() {
                         "text-lg font-medium break-words",
                         todo.completed && "line-through text-muted-foreground"
                       )}>
-                        {todo.text}
+                        {todo.title}
                       </p>
                       
                       {todo.subtasks && todo.subtasks.length > 0 && (

@@ -4,10 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
   signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  onAuthStateChanged 
+  createUserWithEmailAndPassword
 } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { useAuth, useUser } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -23,19 +22,23 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
 
   useEffect(() => {
     setMounted(true);
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        router.push("/dashboard");
-      }
-    });
-    return () => unsubscribe();
-  }, [router]);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && user) {
+      router.push("/dashboard");
+    }
+  }, [mounted, user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) return;
+    
     setLoading(true);
     try {
       if (isLogin) {
@@ -45,17 +48,28 @@ export default function LandingPage() {
       }
       router.push("/dashboard");
     } catch (error: any) {
+      let message = "An unexpected error occurred.";
+      if (error.code === 'auth/invalid-api-key') {
+        message = "Invalid Firebase configuration. Please check your API key in src/firebase/config.ts";
+      } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        message = "Invalid email or password.";
+      } else if (error.code === 'auth/email-already-in-use') {
+        message = "This email is already registered.";
+      } else if (error.code === 'auth/weak-password') {
+        message = "Password should be at least 6 characters.";
+      }
+      
       toast({
         variant: "destructive",
         title: "Authentication Error",
-        description: error.message,
+        description: message,
       });
     } finally {
       setLoading(false);
     }
   };
 
-  if (!mounted) {
+  if (!mounted || isUserLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
