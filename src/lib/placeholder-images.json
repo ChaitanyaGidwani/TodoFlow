@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "app-logo",
+      "description": "Abstract purple and blue flow icon representing productivity.",
+      "imageUrl": "https://picsum.photos/seed/todoflow/400/400",
+      "imageHint": "productivity abstract"
+    }
+  ]
 }
