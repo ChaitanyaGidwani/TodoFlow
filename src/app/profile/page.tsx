@@ -7,7 +7,7 @@ import { collection, query, where, orderBy } from "firebase/firestore";
 import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { TeddyIcon } from "@/components/TeddyIcons";
@@ -17,11 +17,9 @@ import {
   Sun, 
   Moon, 
   History,
-  Shield,
   Palette,
   Download,
   Search,
-  Calendar,
   Trophy,
   ArrowRight,
   Loader2
@@ -35,6 +33,7 @@ interface Todo {
   createdAt: any;
   lastCompletedDate?: any;
   streakDays?: number;
+  userId: string;
 }
 
 export default function ProfilePage() {
@@ -53,11 +52,11 @@ export default function ProfilePage() {
 
   const historyQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
-    // Strictly path-based subcollection query
+    // Strictly path-based subcollection query: users/{userId}/todos
     return query(
       collection(db, "users", user.uid, "todos"),
       where("completed", "==", true),
-      orderBy("lastCompletedDate", "desc")
+      orderBy("createdAt", "desc")
     );
   }, [db, user]);
 
@@ -70,7 +69,11 @@ export default function ProfilePage() {
       
       if (!startDate && !endDate) return matchesSearch;
       
-      const itemDate = item.lastCompletedDate?.toDate ? item.lastCompletedDate.toDate() : new Date();
+      // Fallback to createdAt if lastCompletedDate is missing for legacy docs
+      const itemDate = item.lastCompletedDate?.toDate 
+        ? item.lastCompletedDate.toDate() 
+        : (item.createdAt?.toDate ? item.createdAt.toDate() : new Date());
+        
       const start = startDate ? startOfDay(parseISO(startDate)) : new Date(0);
       const end = endDate ? endOfDay(parseISO(endDate)) : new Date();
       
@@ -244,7 +247,7 @@ export default function ProfilePage() {
                         <div>
                           <p className="font-semibold text-sm">{item.title}</p>
                           <p className="text-[10px] text-muted-foreground">
-                            {format(item.lastCompletedDate?.toDate ? item.lastCompletedDate.toDate() : new Date(), "PPP")}
+                            {format(item.lastCompletedDate?.toDate ? item.lastCompletedDate.toDate() : (item.createdAt?.toDate ? item.createdAt.toDate() : new Date()), "PPP")}
                           </p>
                         </div>
                       </div>

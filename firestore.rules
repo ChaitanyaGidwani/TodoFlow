@@ -7,9 +7,10 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
       
       // Rules for the todos subcollection - strictly scoped to the user
-      match /todos/{todoId} {
-        // Simplified rule: if you are the user identified in the path, you have full access
-        allow read, write, delete, create, update: if request.auth != null && request.auth.uid == userId;
+      match /todos/{document} {
+        // Explicitly allow list and read for collection queries and single doc fetches
+        // Explicitly allow write operations (create, update, delete)
+        allow list, read, write, create, update, delete: if request.auth != null && request.auth.uid == userId;
       }
     }
 

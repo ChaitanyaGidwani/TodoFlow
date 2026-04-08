@@ -53,7 +53,8 @@ export default function LandingPage() {
         await setDoc(doc(db, "users", userCredential.user.uid), {
           email: userCredential.user.email,
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
+          userId: userCredential.user.uid
         });
       }
     } catch (error: any) {
@@ -66,8 +67,6 @@ export default function LandingPage() {
         message = "This email is already registered.";
       } else if (error.code === 'auth/weak-password') {
         message = "Password should be at least 6 characters.";
-      } else if (error.code === 'permission-denied') {
-        message = "You don't have permission to perform this action.";
       }
       
       toast({
