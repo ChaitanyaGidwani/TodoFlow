@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -9,8 +8,6 @@ import { useProfile, UserProfile } from "@/hooks/use-profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 import { TeddyIcon } from "@/components/TeddyIcons";
 import { useTheme } from "@/components/ThemeProvider";
 import { useTodos } from "@/hooks/use-todos";
@@ -19,17 +16,14 @@ import {
   Sun, 
   Moon, 
   Palette,
-  Download,
-  Search,
   Trophy,
   Loader2,
   Camera,
-  Check,
-  Layout
+  Layout,
+  User as UserIcon
 } from "lucide-react";
-import { format } from "date-fns";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { getStorage } from "firebase/storage";
+import { cn } from "@/lib/utils";
+import { ref, uploadBytes, getDownloadURL, getStorage } from "firebase/storage";
 
 const TEDDY_VARIANTS = [
   'dashboard', 'todos', 'calendar', 'streaks', 'profile', 
@@ -40,7 +34,8 @@ const PATTERNS = [
   { id: 'none', label: 'Solid' },
   { id: 'paws', label: 'Paw Prints' },
   { id: 'dots', label: 'Polka Dots' },
-  { id: 'stripes', label: 'Stripes' }
+  { id: 'stripes', label: 'Stripes' },
+  { id: 'stars', label: 'Magic Stars' }
 ];
 
 export default function ProfilePage() {
@@ -89,30 +84,36 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className={cn("max-w-5xl mx-auto p-4 sm:p-8 space-y-8 animate-in fade-in duration-700", profile?.pattern && `pattern-${profile.pattern}`)}>
+    <div className={cn(
+      "max-w-5xl mx-auto p-4 sm:p-8 space-y-8 animate-in fade-in duration-700 min-h-screen", 
+      profile?.pattern && `pattern-${profile.pattern}`
+    )}>
       <header className="flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-6">
           <div className="relative group">
-            <div className="h-24 w-24 rounded-3xl overflow-hidden border-4 border-white/50 shadow-2xl">
+            <div className="h-28 w-28 rounded-3xl overflow-hidden border-4 border-white shadow-2xl bg-white/40 backdrop-blur">
               {profile?.avatarUrl ? (
                 <img src={profile.avatarUrl} className="h-full w-full object-cover" />
               ) : (
-                <div className="h-full w-full bg-primary/10 flex items-center justify-center">
-                  <TeddyIcon size={48} variant="profile" color={profile?.teddyColor} />
+                <div className="h-full w-full flex items-center justify-center bg-primary/10">
+                  <TeddyIcon size={56} variant="profile" color={profile?.teddyColor} />
                 </div>
               )}
             </div>
-            <label className="absolute -bottom-2 -right-2 p-2 bg-white rounded-xl shadow-lg cursor-pointer hover:scale-110 transition-transform">
+            <label className="absolute -bottom-2 -right-2 p-2 bg-white rounded-xl shadow-lg cursor-pointer hover:scale-110 transition-transform border border-primary/20">
               {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4 text-primary" />}
               <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} />
             </label>
           </div>
           <div>
-            <h1 className="text-4xl font-black tracking-tight">Hi, {profile?.displayName || 'Bear'}! ✨</h1>
+            <h1 className="text-4xl font-black tracking-tight text-primary">Hi, {profile?.displayName || 'Bear'}! ✨</h1>
             <p className="text-muted-foreground font-medium">Customize your perfect productivity space.</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={toggleTheme} className="rounded-2xl h-12 w-12 bg-white/50">
+            {theme === 'dark' ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
+          </Button>
           <Button variant="ghost" size="icon" onClick={async () => { await signOut(auth!); router.push("/"); }} className="text-destructive h-12 w-12 rounded-2xl bg-white/50 border border-white/20">
             <LogOut className="h-6 w-6" />
           </Button>
@@ -128,11 +129,11 @@ export default function ProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-4">
-              <div className="flex items-center justify-between p-4 bg-primary/5 rounded-2xl">
-                <span className="text-sm font-bold text-muted-foreground uppercase">Total Done</span>
+              <div className="flex items-center justify-between p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                <span className="text-sm font-bold text-muted-foreground uppercase">Tasks Done</span>
                 <span className="text-2xl font-black text-primary">{stats.total}</span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-secondary/5 rounded-2xl">
+              <div className="flex items-center justify-between p-4 bg-secondary/5 rounded-2xl border border-secondary/10">
                 <span className="text-sm font-bold text-muted-foreground uppercase">Avg Streak</span>
                 <span className="text-2xl font-black text-secondary">{stats.avgStreak}</span>
               </div>
@@ -142,19 +143,20 @@ export default function ProfilePage() {
           <Card className="todo-card border-none">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Palette className="h-5 w-5 text-primary" /> Teddy Color
+                <Palette className="h-5 w-5 text-primary" /> Signature Color
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="flex items-center gap-4">
                 <input 
                   type="color" 
                   value={profile?.teddyColor || '#8b5cf6'} 
                   onChange={(e) => updateProfile({ teddyColor: e.target.value })}
-                  className="h-12 w-full rounded-xl border-none cursor-pointer"
+                  className="h-12 w-full rounded-xl border-none cursor-pointer bg-white/40 p-1"
                 />
                 <Button variant="outline" className="rounded-xl h-12" onClick={() => updateProfile({ teddyColor: '#8b5cf6' })}>Reset</Button>
               </div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest text-center font-bold">This updates all teddy icons!</p>
             </CardContent>
           </Card>
         </div>
@@ -163,14 +165,22 @@ export default function ProfilePage() {
           <Card className="todo-card border-none">
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2">
-                <Palette className="h-6 w-6 text-primary" /> Customization Panel
+                <Layout className="h-6 w-6 text-primary" /> Personalized Theme
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-8">
               <div className="space-y-4">
-                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                  <Loader2 className="h-4 w-4" /> Teddy Gallery
-                </h3>
+                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Display Name</h3>
+                <Input 
+                  value={profile?.displayName || ''} 
+                  onChange={(e) => updateProfile({ displayName: e.target.value })}
+                  placeholder="What's your bear name?"
+                  className="h-12 rounded-2xl bg-white/40 border-primary/10"
+                />
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Teddy Avatar Variant</h3>
                 <div className="grid grid-cols-5 gap-3">
                   {TEDDY_VARIANTS.map(v => (
                     <button
@@ -181,47 +191,27 @@ export default function ProfilePage() {
                         profile?.teddyVariant === v ? "border-primary bg-primary/10" : "border-white/20 bg-white/30"
                       )}
                     >
-                      <TeddyIcon variant={v as any} size={28} color={profile?.teddyColor} />
+                      <TeddyIcon variant={v as any} size={32} color={profile?.teddyColor} />
                     </button>
                   ))}
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                  <Layout className="h-4 w-4" /> Background Pattern
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Background Pattern</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                   {PATTERNS.map(p => (
                     <button
                       key={p.id}
                       onClick={() => updateProfile({ pattern: p.id as any })}
                       className={cn(
-                        "p-4 rounded-2xl border-2 transition-all text-sm font-bold",
+                        "p-4 rounded-2xl border-2 transition-all text-sm font-bold uppercase tracking-tighter",
                         profile?.pattern === p.id ? "border-primary bg-primary/10" : "border-white/20 bg-white/30"
                       )}
                     >
                       {p.label}
                     </button>
                   ))}
-                </div>
-              </div>
-
-              <div className="pt-4 flex items-center justify-between border-t border-white/10">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-card rounded-2xl shadow-lg">
-                    <TeddyIcon variant={profile?.teddyVariant as any} size={32} color={profile?.teddyColor} />
-                  </div>
-                  <div>
-                    <p className="font-bold">App-wide Sync</p>
-                    <p className="text-xs text-muted-foreground">Changes apply to all navigation markers.</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold">Theme</span>
-                  <Button variant="outline" size="icon" onClick={toggleTheme} className="rounded-2xl h-10 w-10">
-                    {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                  </Button>
                 </div>
               </div>
             </CardContent>

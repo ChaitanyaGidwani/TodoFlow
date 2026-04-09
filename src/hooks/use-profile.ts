@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,7 +10,7 @@ export interface UserProfile {
   avatarUrl: string;
   teddyVariant: string;
   teddyColor: string;
-  pattern: 'none' | 'paws' | 'dots' | 'stripes';
+  pattern: 'none' | 'paws' | 'dots' | 'stripes' | 'stars';
   updatedAt: any;
 }
 
@@ -33,7 +32,7 @@ export function useProfile() {
         setProfile(snapshot.data() as UserProfile);
       } else {
         // Initial profile
-        const initial = {
+        const initial: UserProfile = {
           userId: user.uid,
           displayName: user.email?.split('@')[0] || 'User',
           avatarUrl: '',
@@ -43,7 +42,7 @@ export function useProfile() {
           updatedAt: serverTimestamp()
         };
         setDoc(profileRef, initial);
-        setProfile(initial as any);
+        setProfile(initial);
       }
       setLoading(false);
     });

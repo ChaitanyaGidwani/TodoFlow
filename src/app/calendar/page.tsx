@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -20,7 +19,7 @@ import { useProfile } from "@/hooks/use-profile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TeddyIcon } from "@/components/TeddyIcons";
-import { ChevronLeft, ChevronRight, Plus, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Loader2, Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
   Dialog, 
@@ -86,33 +85,42 @@ export default function CalendarPage() {
     setSelectedDay(null);
   };
 
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+    </div>
+  );
+
   return (
-    <div className={cn("max-w-5xl mx-auto p-4 sm:p-8 space-y-8", profile?.pattern && `pattern-${profile.pattern}`)}>
-      <header className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-primary/10 rounded-2xl">
-            <TeddyIcon variant="calendar" size={32} color={profile?.teddyColor} />
+    <div className={cn(
+      "max-w-5xl mx-auto p-4 sm:p-8 space-y-8 animate-in fade-in duration-700", 
+      profile?.pattern && `pattern-${profile.pattern}`
+    )}>
+      <header className="flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div className="p-4 bg-primary/10 rounded-3xl shadow-lg animate-teddy">
+            <TeddyIcon variant="calendar" size={40} color={profile?.teddyColor} />
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Teddy Timeline</h1>
-            <p className="text-muted-foreground text-sm">Visualize your flow, day by day! 🐻</p>
+            <h1 className="text-4xl font-black tracking-tight text-primary">Teddy Timeline</h1>
+            <p className="text-muted-foreground font-medium">Visualize your flow, day by day! 🐻</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-white/50 backdrop-blur p-1 rounded-xl border border-white/20">
-          <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-            <ChevronLeft className="h-5 w-5" />
+        <div className="flex items-center gap-2 bg-white/40 backdrop-blur-xl p-2 rounded-2xl border border-white/20 shadow-xl">
+          <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="hover:bg-primary/10 rounded-xl">
+            <ChevronLeft className="h-6 w-6" />
           </Button>
-          <span className="font-bold px-4 min-w-[140px] text-center">
+          <span className="font-black px-6 min-w-[160px] text-center text-lg">
             {format(currentMonth, 'MMMM yyyy')}
           </span>
-          <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-            <ChevronRight className="h-5 w-5" />
+          <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="hover:bg-primary/10 rounded-xl">
+            <ChevronRight className="h-6 w-6" />
           </Button>
         </div>
       </header>
 
-      <Card className="todo-card border-none shadow-2xl overflow-hidden">
-        <div className="grid grid-cols-7 border-b border-white/10 bg-white/20 backdrop-blur text-center py-4 font-bold text-xs uppercase tracking-widest text-muted-foreground">
+      <Card className="todo-card border-none shadow-2xl overflow-hidden rounded-[2rem]">
+        <div className="grid grid-cols-7 border-b border-white/10 bg-white/30 backdrop-blur-xl text-center py-5 font-black text-xs uppercase tracking-widest text-muted-foreground">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d}>{d}</div>)}
         </div>
         <div className="grid grid-cols-7">
@@ -126,64 +134,67 @@ export default function CalendarPage() {
                 <DialogTrigger asChild>
                   <div 
                     className={cn(
-                      "min-h-[100px] sm:min-h-[120px] p-2 border-r border-b border-white/10 relative cursor-pointer hover:bg-white/40 transition-all group",
-                      !isSelectedMonth && "opacity-30",
+                      "min-h-[110px] sm:min-h-[140px] p-3 border-r border-b border-white/10 relative cursor-pointer hover:bg-white/50 transition-all group",
+                      !isSelectedMonth && "opacity-20",
                       isTodayDate && "bg-primary/5"
                     )}
                   >
                     <span className={cn(
-                      "text-sm font-bold h-7 w-7 flex items-center justify-center rounded-full transition-all",
-                      isTodayDate && "bg-primary text-white scale-110 shadow-lg"
+                      "text-sm font-black h-8 w-8 flex items-center justify-center rounded-xl transition-all",
+                      isTodayDate ? "bg-primary text-white scale-110 shadow-xl" : "text-foreground/60"
                     )}>
                       {format(day, 'd')}
                     </span>
 
-                    <div className="mt-2 flex flex-wrap gap-1">
+                    <div className="mt-3 flex flex-wrap gap-1.5">
                       {status.hasTasks && (
-                        <div className="animate-in zoom-in-50 duration-300">
-                          <TeddyIcon variant="paw" size={16} color={profile?.teddyColor} />
+                        <div className="animate-in zoom-in duration-300">
+                          <TeddyIcon variant="paw" size={18} color={profile?.teddyColor} />
                         </div>
                       )}
                       {status.allDone && (
-                        <div className="animate-in zoom-in-50 duration-300">
-                          <TeddyIcon variant="todos" size={16} color="#10b981" />
+                        <div className="animate-in zoom-in duration-300">
+                          <TeddyIcon variant="todos" size={18} color="#10b981" />
                         </div>
                       )}
                       {status.hasDaily && (
-                        <div className="animate-in zoom-in-50 duration-300">
-                          <TeddyIcon variant="flame" size={16} color="#f59e0b" />
+                        <div className="animate-in zoom-in duration-300">
+                          <TeddyIcon variant="flame" size={18} color="#f59e0b" />
                         </div>
                       )}
                       {status.hasBadge && (
-                        <div className="animate-in zoom-in-50 duration-300">
-                          <TeddyIcon variant="star" size={16} color="#8b5cf6" />
+                        <div className="animate-in zoom-in duration-300">
+                          <TeddyIcon variant="star" size={18} color="#8b5cf6" />
                         </div>
                       )}
                     </div>
 
-                    <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="p-1 bg-primary/20 rounded-full">
+                    <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="p-1.5 bg-primary/20 rounded-xl">
                         <Plus className="h-3 w-3 text-primary" />
                       </div>
                     </div>
                   </div>
                 </DialogTrigger>
-                <DialogContent className="todo-card border-none sm:max-w-md">
+                <DialogContent className="todo-card border-none sm:max-w-md rounded-[2rem]">
                   <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <TeddyIcon variant="calendar" size={24} color={profile?.teddyColor} />
-                      Tasks for {format(day, 'MMMM do')}
+                    <DialogTitle className="flex items-center gap-3 text-2xl font-black">
+                      <TeddyIcon variant="calendar" size={28} color={profile?.teddyColor} />
+                      {format(day, 'MMMM do')}
                     </DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-4 pt-4">
-                    <div className="space-y-2">
+                  <div className="space-y-6 pt-4">
+                    <div className="space-y-3 max-h-[300px] overflow-auto pr-2">
                       {getDayTodos(day).length === 0 ? (
-                        <p className="text-center text-muted-foreground italic py-4">No tasks planned for this day 🐻</p>
+                        <div className="text-center py-8 space-y-2">
+                          <TeddyIcon variant="paw" size={48} className="mx-auto opacity-20" color={profile?.teddyColor} />
+                          <p className="text-muted-foreground font-bold">No tasks planned for this day! 🐻</p>
+                        </div>
                       ) : (
                         getDayTodos(day).map(t => (
-                          <div key={t.id} className="flex items-center gap-2 p-3 bg-white/40 rounded-xl border border-white/20">
-                            <TeddyIcon variant={t.completed ? "todos" : "paw"} size={16} color={t.completed ? "#10b981" : profile?.teddyColor} />
-                            <span className={cn(t.completed && "line-through opacity-50")}>{t.title}</span>
+                          <div key={t.id} className="flex items-center gap-3 p-4 bg-white/50 rounded-2xl border border-white/20 shadow-sm">
+                            <TeddyIcon variant={t.completed ? "todos" : "paw"} size={20} color={t.completed ? "#10b981" : profile?.teddyColor} />
+                            <span className={cn("font-bold text-sm", t.completed && "line-through opacity-50")}>{t.title}</span>
                           </div>
                         ))
                       )}
@@ -194,9 +205,9 @@ export default function CalendarPage() {
                         value={newTodoTitle}
                         onChange={(e) => setNewTodoTitle(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleAddTodo()}
-                        className="bg-white/50 border-white/20"
+                        className="bg-white/60 border-white/20 h-12 rounded-2xl font-bold"
                       />
-                      <Button onClick={handleAddTodo} className="gradient-btn">Add</Button>
+                      <Button onClick={handleAddTodo} className="gradient-btn h-12 px-6 rounded-2xl font-black">Add</Button>
                     </div>
                   </div>
                 </DialogContent>
