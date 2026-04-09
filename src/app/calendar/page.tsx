@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { 
   format, 
   startOfMonth, 
@@ -16,10 +16,10 @@ import {
 } from "date-fns";
 import { useTodos } from "@/hooks/use-todos";
 import { useProfile } from "@/hooks/use-profile";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TeddyIcon } from "@/components/TeddyIcons";
-import { ChevronLeft, ChevronRight, Plus, Loader2, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
   Dialog, 
@@ -33,6 +33,7 @@ import { collection, serverTimestamp } from "firebase/firestore";
 import { useFirestore, useUser, addDocumentNonBlocking } from "@/firebase";
 
 export default function CalendarPage() {
+  const [mounted, setMounted] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [newTodoTitle, setNewTodoTitle] = useState("");
@@ -41,6 +42,10 @@ export default function CalendarPage() {
   const { profile } = useProfile();
   const { user } = useUser();
   const db = useFirestore();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(currentMonth));
@@ -85,7 +90,7 @@ export default function CalendarPage() {
     setSelectedDay(null);
   };
 
-  if (loading) return (
+  if (!mounted || loading) return (
     <div className="min-h-screen flex items-center justify-center">
       <Loader2 className="h-10 w-10 animate-spin text-primary" />
     </div>
@@ -103,7 +108,9 @@ export default function CalendarPage() {
           </div>
           <div>
             <h1 className="text-4xl font-black tracking-tight text-primary">Teddy Timeline</h1>
-            <p className="text-muted-foreground font-medium">Visualize your flow, day by day! 🐻</p>
+            <p className="text-muted-foreground font-medium flex items-center gap-2">
+              <Sparkles className="h-3 w-3" /> Visualize your flow, day by day! 🐻
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2 bg-white/40 backdrop-blur-xl p-2 rounded-2xl border border-white/20 shadow-xl">
@@ -124,15 +131,16 @@ export default function CalendarPage() {
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d}>{d}</div>)}
         </div>
         <div className="grid grid-cols-7">
-          {days.map((day, idx) => {
+          {days.map((day) => {
             const status = getDayStatus(day);
             const isTodayDate = isSameDay(day, new Date());
             const isSelectedMonth = isSameMonth(day, currentMonth);
 
             return (
-              <Dialog key={day.toString()} open={selectedDay ? isSameDay(selectedDay, day) : false} onOpenChange={(open) => open ? setSelectedDay(day) : setSelectedDay(null)}>
+              <Dialog key={day.toString()}>
                 <DialogTrigger asChild>
                   <div 
+                    onClick={() => setSelectedDay(day)}
                     className={cn(
                       "min-h-[110px] sm:min-h-[140px] p-3 border-r border-b border-white/10 relative cursor-pointer hover:bg-white/50 transition-all group",
                       !isSelectedMonth && "opacity-20",

@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { doc, serverTimestamp } from "firebase/firestore";
 import { 
-  useAuth, 
   useFirestore, 
   useUser, 
   updateDocumentNonBlocking
@@ -33,7 +31,8 @@ import {
   Clock,
   Loader2,
   Flame,
-  Star
+  Star,
+  Sparkles
 } from "lucide-react";
 import { 
   LineChart, 
@@ -53,7 +52,7 @@ import {
 } from "recharts";
 import { aiTaskBreakdown } from "@/ai/flows/ai-task-breakdown";
 import { cn } from "@/lib/utils";
-import { format, isToday, isYesterday, parseISO, startOfWeek, eachDayOfInterval, subDays } from "date-fns";
+import { format, isToday, isYesterday, parseISO, eachDayOfInterval, subDays } from "date-fns";
 import { TeddyIcon } from "@/components/TeddyIcons";
 import { useProfile } from "@/hooks/use-profile";
 import { 
@@ -64,12 +63,6 @@ import {
   CarouselPrevious 
 } from "@/components/ui/carousel";
 
-const PRIORITY_COLORS = {
-  low: "border-blue-500/50 text-blue-500",
-  medium: "border-amber-500/50 text-amber-500",
-  high: "border-rose-500/50 text-rose-500",
-};
-
 const COLORS = ["#A855F7", "#3B82F6", "#EC4899", "#10B981"];
 
 function AnimatedNumber({ value }: { value: number }) {
@@ -78,10 +71,13 @@ function AnimatedNumber({ value }: { value: number }) {
   useEffect(() => {
     let start = 0;
     const end = value;
-    if (start === end) return;
+    if (start === end) {
+      setDisplayValue(end);
+      return;
+    }
     
     const duration = 1500;
-    const stepTime = Math.abs(Math.floor(duration / end)) || 20;
+    const stepTime = Math.abs(Math.floor(duration / (end || 1))) || 20;
     
     const timer = setInterval(() => {
       start += Math.ceil(end / 40) || 1;
@@ -138,10 +134,13 @@ export default function Dashboard() {
       start: subDays(new Date(), 6),
       end: new Date()
     }).map(day => {
-      const count = todos.filter(t => t.createdAt && isToday(t.createdAt?.toDate ? t.createdAt.toDate() : parseISO(t.createdAt))).length;
+      const count = todos.filter(t => {
+        const createdDate = t.createdAt?.toDate ? t.createdAt.toDate() : parseISO(t.createdAt);
+        return format(createdDate, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
+      }).length;
       return {
         day: format(day, 'EEE'),
-        tasks: count || Math.floor(Math.random() * 5) // Mock for visual if empty
+        tasks: count
       };
     });
 
@@ -203,15 +202,15 @@ export default function Dashboard() {
             Flow State <TeddyIcon variant="paw" size={40} color={profile?.teddyColor} className="animate-teddy" />
           </h1>
           <p className="text-muted-foreground font-bold mt-2 uppercase tracking-widest text-xs flex items-center gap-2">
-            <Sparkles className="h-3 w-3 text-primary" /> Personalized productivity for {profile?.displayName || 'you'}
+            <Sparkles className="h-4 w-4 text-primary animate-pulse" /> Personalized productivity for {profile?.displayName || 'you'}
           </p>
         </div>
-        <div className="neon-badge px-6 py-2">
+        <div className="neon-badge px-6 py-2 flex items-center">
           <Clock className="h-4 w-4 mr-2" /> {format(new Date(), 'EEEE, MMMM do')}
         </div>
       </header>
 
-      {/* STATS CAROUSEL MOBILE / GRID DESKTOP */}
+      {/* STAT CARDS MOBILE CAROUSEL */}
       <div className="md:hidden">
         <Carousel className="w-full">
           <CarouselContent>
@@ -224,7 +223,7 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mb-1">{item.label}</p>
-                      <p className="text-4xl font-black"><AnimatedNumber value={item.value as number} /></p>
+                      <p className="text-4xl font-black"><AnimatedNumber value={item.value} /></p>
                     </div>
                   </CardContent>
                 </Card>
@@ -234,6 +233,7 @@ export default function Dashboard() {
         </Carousel>
       </div>
 
+      {/* STAT CARDS DESKTOP GRID */}
       <div className="hidden md:grid grid-cols-4 gap-6">
         {statItems.map((item, idx) => (
           <Card key={idx} className="graph-card group hover:scale-[1.05] transition-all animate-shimmer">
@@ -243,7 +243,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mb-0.5">{item.label}</p>
-                <p className="text-3xl font-black"><AnimatedNumber value={item.value as number} /></p>
+                <p className="text-3xl font-black"><AnimatedNumber value={item.value} /></p>
               </div>
             </CardContent>
           </Card>
@@ -252,7 +252,6 @@ export default function Dashboard() {
 
       {/* GRAPHS GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* LINE CHART: STREAK */}
         <Card className="graph-card lg:col-span-1 min-h-[400px]">
           <CardHeader>
             <CardTitle className="text-lg font-black flex items-center gap-3">
@@ -261,7 +260,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="h-[300px] w-full mt-4">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={stats?.streakHistory}>
+              <AreaChart data={stats?.streakHistory || []}>
                 <defs>
                   <linearGradient id="colorStreak" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#A855F7" stopOpacity={0.4}/>
@@ -289,7 +288,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* BAR CHART: WEEKLY */}
         <Card className="graph-card lg:col-span-1 min-h-[400px]">
           <CardHeader>
             <CardTitle className="text-lg font-black flex items-center gap-3">
@@ -298,7 +296,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="h-[300px] w-full mt-4">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats?.weeklyData}>
+              <BarChart data={stats?.weeklyData || []}>
                 <defs>
                   <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#3B82F6" stopOpacity={1}/>
@@ -312,7 +310,7 @@ export default function Dashboard() {
                   contentStyle={{ backgroundColor: 'rgba(0,0,0,0.85)', borderRadius: '1.5rem', border: 'none' }}
                 />
                 <Bar dataKey="tasks" radius={[10, 10, 10, 10]}>
-                  {stats?.weeklyData.map((entry, index) => (
+                  {(stats?.weeklyData || []).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill="url(#colorBar)" />
                   ))}
                 </Bar>
@@ -321,7 +319,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* PIE CHART: EFFICIENCY */}
         <Card className="graph-card min-h-[400px]">
           <CardHeader>
             <CardTitle className="text-lg font-black flex items-center gap-3">
@@ -337,7 +334,7 @@ export default function Dashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={stats?.chartData}
+                  data={stats?.chartData || []}
                   cx="50%"
                   cy="50%"
                   innerRadius={85}
@@ -346,7 +343,7 @@ export default function Dashboard() {
                   dataKey="value"
                   stroke="none"
                 >
-                  {stats?.chartData?.map((entry: any, index: number) => (
+                  {(stats?.chartData || []).map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -416,11 +413,6 @@ export default function Dashboard() {
                       )}>
                         {todo.title}
                       </p>
-                      {todo.priority && (
-                        <span className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded-full border", PRIORITY_COLORS[todo.priority as keyof typeof PRIORITY_COLORS])}>
-                          {todo.priority}
-                        </span>
-                      )}
                     </div>
                     
                     <div className="flex items-center gap-4 text-[10px] text-muted-foreground font-black uppercase tracking-widest">
