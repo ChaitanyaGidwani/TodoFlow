@@ -48,11 +48,13 @@ export default function ProfilePage() {
   const { user, isUserLoading } = useUser();
   const { theme, toggleTheme } = useTheme();
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => { 
+    setMounted(true); 
+  }, []);
 
+  // Use the exact subcollection path: users/{userId}/todos
   const historyQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
-    // Strictly path-based subcollection query: users/{userId}/todos
     return query(
       collection(db, "users", user.uid, "todos"),
       where("completed", "==", true),
@@ -60,16 +62,16 @@ export default function ProfilePage() {
     );
   }, [db, user]);
 
-  const { data: history, isLoading } = useCollection<Todo>(historyQuery);
+  const { data: history, isLoading, error: queryError } = useCollection<Todo>(historyQuery);
 
   const filteredHistory = useMemo(() => {
     if (!history) return [];
     return history.filter(item => {
-      const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const title = item.title || "";
+      const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase());
       
       if (!startDate && !endDate) return matchesSearch;
       
-      // Fallback to createdAt if lastCompletedDate is missing for legacy docs
       const itemDate = item.lastCompletedDate?.toDate 
         ? item.lastCompletedDate.toDate() 
         : (item.createdAt?.toDate ? item.createdAt.toDate() : new Date());
@@ -154,6 +156,14 @@ export default function ProfilePage() {
         </div>
       </header>
 
+      {queryError && (
+        <Card className="border-destructive/50 bg-destructive/10">
+          <CardContent className="p-4 text-destructive text-sm flex items-center gap-2">
+            🐻 Oops! There was an issue fetching your history. Our tech bears are on it.
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="space-y-6">
           <Card className="todo-card border-none bg-gradient-to-br from-primary/10 to-secondary/10">
@@ -163,11 +173,11 @@ export default function ProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-white/40 rounded-xl text-center">
+              <div className="p-3 bg-white/40 dark:bg-black/20 rounded-xl text-center">
                 <p className="text-2xl font-bold text-primary">{stats.total}</p>
                 <p className="text-[10px] uppercase font-bold text-muted-foreground">Total Done</p>
               </div>
-              <div className="p-3 bg-white/40 rounded-xl text-center">
+              <div className="p-3 bg-white/40 dark:bg-black/20 rounded-xl text-center">
                 <p className="text-2xl font-bold text-secondary">{stats.avgStreak}</p>
                 <p className="text-[10px] uppercase font-bold text-muted-foreground">Avg Streak</p>
               </div>
@@ -203,6 +213,7 @@ export default function ProfilePage() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-9 bg-white/10 border-white/10"
+                    suppressHydrationWarning
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -211,6 +222,7 @@ export default function ProfilePage() {
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     className="bg-white/10 border-white/10 text-xs h-10"
+                    suppressHydrationWarning
                   />
                   <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input 
@@ -218,6 +230,7 @@ export default function ProfilePage() {
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     className="bg-white/10 border-white/10 text-xs h-10"
+                    suppressHydrationWarning
                   />
                 </div>
               </div>
@@ -232,22 +245,24 @@ export default function ProfilePage() {
                   )}
                   {!isLoading && filteredHistory.length === 0 && (
                     <div className="text-center py-20 border border-dashed border-primary/20 rounded-3xl">
-                      <p className="text-muted-foreground italic">No history matches these filters.</p>
+                      <p className="text-muted-foreground italic">No history matches these filters 🐻</p>
                     </div>
                   )}
                   {filteredHistory.map((item) => (
                     <div 
                       key={item.id} 
-                      className="p-4 rounded-2xl bg-white/20 border border-white/20 flex items-center justify-between group hover:bg-white/40 transition-colors"
+                      className="p-4 rounded-2xl bg-white/20 dark:bg-black/20 border border-white/20 flex items-center justify-between group hover:bg-white/40 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                        <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600">
                           <History className="h-5 w-5" />
                         </div>
                         <div>
                           <p className="font-semibold text-sm">{item.title}</p>
                           <p className="text-[10px] text-muted-foreground">
-                            {format(item.lastCompletedDate?.toDate ? item.lastCompletedDate.toDate() : (item.createdAt?.toDate ? item.createdAt.toDate() : new Date()), "PPP")}
+                            {item.lastCompletedDate?.toDate 
+                              ? format(item.lastCompletedDate.toDate(), "PPP") 
+                              : (item.createdAt?.toDate ? format(item.createdAt.toDate(), "PPP") : "Recent")}
                           </p>
                         </div>
                       </div>

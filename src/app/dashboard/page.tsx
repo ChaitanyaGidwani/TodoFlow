@@ -16,11 +16,9 @@ import {
   useUser, 
   useCollection, 
   useMemoFirebase,
-  addDocumentNonBlocking,
   updateDocumentNonBlocking
 } from "@/firebase";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -31,10 +29,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
 import { 
-  Plus, 
   LogOut, 
   Sparkles, 
   Loader2, 
@@ -88,30 +83,23 @@ const COLORS = ["#5C2EB3", "#2666D9", "#fed6e3", "#a8edea"];
 
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
-  const [newTodo, setNewTodo] = useState("");
-  const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
-  const [isDaily, setIsDaily] = useState(false);
-  const [dueDate, setDueDate] = useState("");
-  const [adding, setAdding] = useState(false);
   const [breakingDownId, setBreakingDownId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
   
   const router = useRouter();
-  const { toast } = useToast();
   const auth = useAuth();
   const db = useFirestore();
   const { user, isUserLoading } = useUser();
 
   const todosQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
-    // Path: users/{userId}/todos
     return query(
       collection(db, "users", user.uid, "todos"),
       orderBy("createdAt", "desc")
     );
   }, [db, user]);
 
-  const { data: todos, isLoading: isTodosLoading } = useCollection<Todo>(todosQuery);
+  const { data: todos, isLoading: isTodosLoading, error: queryError } = useCollection<Todo>(todosQuery);
 
   useEffect(() => {
     setMounted(true);
@@ -136,30 +124,6 @@ export default function Dashboard() {
 
     return { completedCount, pendingCount, dueTodayCount, maxStreak, chartData, streakHistory };
   }, [todos]);
-
-  const handleAddTodo = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTodo.trim() || !user || !db) return;
-
-    setAdding(true);
-    const colRef = collection(db, "users", user.uid, "todos");
-    
-    addDocumentNonBlocking(colRef, {
-      title: newTodo,
-      completed: false,
-      userId: user.uid, // Required field
-      createdAt: serverTimestamp(),
-      priority,
-      isDaily,
-      dueDate: dueDate || null,
-      streakDays: 0,
-      lastCompletedDate: null
-    });
-    
-    setNewTodo("");
-    setDueDate("");
-    setAdding(false);
-  };
 
   const toggleTodo = (todo: Todo) => {
     if (!db || !user) return;
@@ -222,6 +186,14 @@ export default function Dashboard() {
             </Button>
           </div>
         </header>
+
+        {queryError && (
+          <Card className="border-destructive/50 bg-destructive/10">
+            <CardContent className="p-4 text-destructive text-sm flex items-center gap-2">
+              🐻 Pawsitive vibes only! We hit a snag syncing your tasks. Please refresh.
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="todo-card border-none shadow-md">
@@ -310,48 +282,6 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
-
-        <Card className="todo-card border-none shadow-xl">
-          <CardContent className="p-6">
-            <form onSubmit={handleAddTodo} className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Input 
-                  placeholder="Focus on what matters most..." 
-                  value={newTodo}
-                  onChange={(e) => setNewTodo(e.target.value)}
-                  className="h-12 border-none bg-muted/30 focus-visible:ring-primary text-base flex-1"
-                  disabled={adding}
-                />
-                <Button type="submit" className="h-12 px-8 gradient-btn font-semibold" disabled={adding}>
-                  {adding ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Plus className="h-5 w-5 mr-2" />}
-                  Quick Add
-                </Button>
-              </div>
-              <div className="flex flex-wrap items-center gap-4 pt-2">
-                <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
-                  <SelectTrigger className="w-[120px] h-9 bg-white/50 border-white/20">
-                    <SelectValue placeholder="Priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center gap-2 bg-white/50 px-3 py-1.5 rounded-md border border-white/20">
-                  <Checkbox id="daily" checked={isDaily} onCheckedChange={(v: any) => setIsDaily(v)} />
-                  <label htmlFor="daily" className="text-sm font-medium cursor-pointer">Daily</label>
-                </div>
-                <Input 
-                  type="date" 
-                  value={dueDate} 
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="h-9 w-[160px] bg-white/50 border-white/20"
-                />
-              </div>
-            </form>
-          </CardContent>
-        </Card>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
