@@ -6,7 +6,7 @@
   :root {
     --background: 240 10% 95%;
     --foreground: 240 10% 3.9%;
-    --card: 0 0% 100% / 0.4;
+    --card: 0 0% 100% / 0.6;
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
@@ -32,18 +32,24 @@
   .dark {
     --background: 240 10% 2%;
     --foreground: 0 0% 100%;
-    --card: 0 0% 0% / 0.3;
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 5% / 0.4;
+    --card-foreground: 0 0% 100%;
     --primary: 263 70% 70%;
     --primary-foreground: 240 10% 3.9%;
     --secondary: 219 70% 60%;
     --muted: 240 10% 10%;
-    --muted-foreground: 240 5% 70%;
-    --border: 240 10% 15%;
+    --muted-foreground: 240 5% 80%;
+    --border: 263 70% 30% / 0.5;
     --input: 240 10% 15%;
     
-    --bg-gradient: linear-gradient(135deg, #09090b 0%, #111111 50%, #000000 100%);
-    --card-shadow: 0 0 30px rgba(168, 85, 247, 0.15);
+    /* VIBRANT NIGHT GRADIENT */
+    --bg-gradient: linear-gradient(135deg, 
+      #1e1b4b 0%,      /* Deep cosmic blue */
+      #2a1b3d 30%,     /* Purple nebula */
+      #1a0f2e 70%,     /* Black void */
+      #0f0a1a 100%     /* Starfield black */
+    );
+    --card-shadow: 0 0 30px rgba(168, 85, 247, 0.4), 0 25px 50px rgba(0,0,0,0.5);
   }
 }
 
@@ -58,25 +64,38 @@
 }
 
 .glass-card {
-  @apply backdrop-blur-xl bg-white/20 dark:bg-black/40 border border-white/20 dark:border-purple-500/20 transition-all duration-300;
+  @apply backdrop-blur-2xl bg-white/20 dark:bg-black/40 border border-white/20 dark:border-purple-500/30 transition-all duration-300;
   box-shadow: var(--card-shadow);
 }
 
+.dark .glass-card {
+  box-shadow: var(--card-shadow), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
 .glass-card:hover {
-  @apply border-white/40 dark:border-purple-500/40;
+  @apply border-white/40 dark:border-purple-500/50 scale-[1.005];
 }
 
 .neon-badge {
-  @apply inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-white shadow-lg;
+  @apply inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-all;
   background: linear-gradient(45deg, #a855f7, #ec4899);
 }
 
-.text-gradient {
-  @apply bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 bg-clip-text text-transparent;
+.dark .neon-badge {
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.5);
 }
 
+.text-gradient {
+  @apply bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-300 dark:to-blue-300 bg-clip-text text-transparent;
+}
+
+/* GLOWING PATTERNS */
 .pattern-paws {
-  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm10 0c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-5 5c2.2 0 4-1.8 4-4s-1.8-4-4-4-4 1.8-4 4 1.8 4 4 4z' fill='%23a855f7' fill-opacity='0.05'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm10 0c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-5 5c2.2 0 4-1.8 4-4s-1.8-4-4-4-4 1.8-4 4 1.8 4 4 4z' fill='%23a855f7' fill-opacity='0.08'/%3E%3C/svg%3E");
+}
+
+.dark .pattern-paws {
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm10 0c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-5 5c2.2 0 4-1.8 4-4s-1.8-4-4-4-4 1.8-4 4 1.8 4 4 4z' fill='%23a855f7' fill-opacity='0.15'/%3E%3C/svg%3E");
 }
 
 .pattern-dots {
@@ -84,12 +103,24 @@
   background-size: 20px 20px;
 }
 
+.dark .pattern-dots {
+  background-image: radial-gradient(rgba(168, 85, 247, 0.3) 1px, transparent 1px);
+}
+
 .pattern-stripes {
   background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(168, 85, 247, 0.05) 10px, rgba(168, 85, 247, 0.1) 20px);
 }
 
+.dark .pattern-stripes {
+  background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(236, 72, 153, 0.1) 10px, rgba(236, 72, 153, 0.15) 20px);
+}
+
 .pattern-stars {
-  background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z' fill='%23a855f7' fill-opacity='0.05'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z' fill='%23fbbf24' fill-opacity='0.08'/%3E%3C/svg%3E");
+}
+
+.dark .pattern-stars {
+  background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z' fill='%23fbbf24' fill-opacity='0.25'/%3E%3C/svg%3E");
 }
 
 .animate-teddy {
@@ -105,11 +136,22 @@
   @apply glass-card rounded-[2rem] overflow-hidden;
 }
 
-/* Hide scrollbar for gallery */
 .icon-gallery::-webkit-scrollbar {
   display: none;
 }
 .icon-gallery {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.dark .teddy-icon-glow {
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
+.gradient-btn {
+  @apply bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-lg transition-all;
+}
+
+.dark .gradient-btn {
+  @apply shadow-[0_0_20px_rgba(168,85,247,0.4)];
 }

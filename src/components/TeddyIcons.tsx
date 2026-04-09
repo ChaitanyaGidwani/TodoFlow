@@ -25,7 +25,8 @@ export function TeddyIcon({ className, size = 24, variant = 'dashboard', color }
       viewBox="0 0 24 24" 
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
-      className={cn("transition-all", className)}
+      className={cn("transition-all teddy-icon-glow", className)}
+      style={{ color: effectiveColor }}
     >
       <defs>
         <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -69,52 +70,46 @@ export function TeddyIcon({ className, size = 24, variant = 'dashboard', color }
         {variant === 'bunny-crown' && (
           <>
             <path d="M7 10c0-4 1-8 5-8s5 4 5 8" />
-            <path d="M5 10c0-4-1-8-5-8S-5 2-5 6" /> {/* Hidden overflow handle */}
             <circle cx="12" cy="15" r="7" />
             <path d="M9 13h1m5 0h1m-5 4s1 1 2 1 2-1 2-1" />
-            <path d="M10 8l2-2 2 2" fill={effectiveColor} />
+            <path d="M10 8l2-2 2 2" fill={effectiveColor} fillOpacity="0.2" />
           </>
         )}
         {variant === 'panda-bamboo' && (
           <>
             <circle cx="12" cy="12" r="9" />
-            <path d="M8 11a2 2 0 100 4 2 2 0 000-4zm8 0a2 2 0 100 4 2 2 0 000-4z" fill={effectiveColor} />
+            <path d="M8 11a2 2 0 100 4 2 2 0 000-4zm8 0a2 2 0 100 4 2 2 0 000-4z" fill={effectiveColor} fillOpacity="0.3" />
             <path d="M11 15h2" />
-            <path d="M20 6l-2 2m-14 0l-2-2" strokeWidth="3" />
+            <path d="M20 6l-2 2m-14 0l-2-2" strokeWidth="2.5" />
           </>
         )}
         {variant === 'frog-hat' && (
           <>
             <path d="M3 14c0-5 4-9 9-9s9 4 9 9v4H3v-4z" />
-            <circle cx="7" cy="7" r="3" fill="white" />
-            <circle cx="17" cy="7" r="3" fill="white" />
-            <circle cx="7" cy="7" r="1" fill="black" />
-            <circle cx="17" cy="7" r="1" fill="black" />
+            <circle cx="7" cy="7" r="3" strokeOpacity="0.5" />
+            <circle cx="17" cy="7" r="3" strokeOpacity="0.5" />
             <path d="M8 14s2 2 4 2 4-2 4-2" />
           </>
         )}
         {variant === 'unicorn' && (
           <>
-            <path d="M12 2l2 6-2 2-2-2 2-6z" fill={effectiveColor} />
+            <path d="M12 2l2 6-2 2-2-2 2-6z" fill={effectiveColor} fillOpacity="0.4" />
             <path d="M5 20c0-6 3-10 7-10s7 4 7 10" />
             <path d="M9 15h1m5 0h1" />
-            <path d="M19 12l2-2m-16 0l-2 2" strokeOpacity="0.5" />
           </>
         )}
         {variant === 'rainbow-kitty' && (
           <>
             <path d="M4 12c0-4 3-7 8-7s8 3 8 7v6H4v-6z" />
             <path d="M6 7l-2-3m14 3l2-3" />
-            <path d="M12 5c-3 0-5 2-5 5m5-5c3 0 5 2 5 5" strokeOpacity="0.3" />
             <path d="M9 13h1m5 0h1m-5 3s1 1 2 1 2-1 2-1" />
           </>
         )}
         {variant === 'strawberry-bear' && (
           <>
-            <path d="M12 4l-1 2m2-2l1 2" stroke="green" />
+            <path d="M12 4l-1 2m2-2l1 2" stroke="#10b981" />
             <circle cx="12" cy="13" r="8" fill={effectiveColor} fillOpacity="0.2" />
             <path d="M12 5c-4 0-7 3-7 8s3 8 7 8 7-3 7-8-3-8-7-8z" />
-            <path d="M10 11h1m3 0h1m-4 5s1 1 2 1 2-1 2-1" />
           </>
         )}
         {variant === 'coffee-fox' && (
@@ -122,23 +117,20 @@ export function TeddyIcon({ className, size = 24, variant = 'dashboard', color }
             <path d="M8 8l4-4 4 4v8H8V8z" />
             <path d="M16 12h3a2 2 0 010 4h-3" />
             <path d="M10 11h1m3 0h1" />
-            <path d="M11 4v1m2-1v1" strokeOpacity="0.5" />
           </>
         )}
         {variant === 'rockstar-bunny' && (
           <>
             <path d="M8 8V3l2 2 2-2 2 2 2-2v5" />
             <circle cx="12" cy="14" r="7" />
-            <path d="M10 13l1 1-1 1m4-2l-1 1 1 1" />
-            <path d="M9 18l6-2" strokeWidth="2" />
+            <path d="M9 18l6-2" strokeWidth="2.5" />
           </>
         )}
         {variant === 'magic-panda' && (
           <>
             <path d="M12 2v4m0 0l-2-2m2 2l2-2" strokeOpacity="0.8" />
             <circle cx="12" cy="13" r="8" />
-            <path d="M9 12a2 2 0 100 4 2 2 0 000-4zm6 0a2 2 0 100 4 2 2 0 000-4z" fill={effectiveColor} />
-            <path d="M11 18h2" />
+            <path d="M9 12a2 2 0 100 4 2 2 0 000-4zm6 0a2 2 0 100 4 2 2 0 000-4z" fill={effectiveColor} fillOpacity="0.4" />
           </>
         )}
       </g>
