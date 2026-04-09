@@ -35,8 +35,8 @@ import {
   Sparkles
 } from "lucide-react";
 import { 
-  LineChart, 
-  Line, 
+  AreaChart, 
+  Area, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -46,9 +46,7 @@ import {
   Pie, 
   Cell,
   BarChart,
-  Bar,
-  AreaChart,
-  Area
+  Bar
 } from "recharts";
 import { aiTaskBreakdown } from "@/ai/flows/ai-task-breakdown";
 import { cn } from "@/lib/utils";
@@ -58,9 +56,7 @@ import { useProfile } from "@/hooks/use-profile";
 import { 
   Carousel, 
   CarouselContent, 
-  CarouselItem, 
-  CarouselNext, 
-  CarouselPrevious 
+  CarouselItem 
 } from "@/components/ui/carousel";
 
 const COLORS = ["#A855F7", "#3B82F6", "#EC4899", "#10B981"];
@@ -76,11 +72,11 @@ function AnimatedNumber({ value }: { value: number }) {
       return;
     }
     
-    const duration = 1500;
+    const duration = 1000;
     const stepTime = Math.abs(Math.floor(duration / (end || 1))) || 20;
     
     const timer = setInterval(() => {
-      start += Math.ceil(end / 40) || 1;
+      start += Math.ceil(end / 20) || 1;
       if (start >= end) {
         setDisplayValue(end);
         clearInterval(timer);
@@ -188,24 +184,24 @@ export default function Dashboard() {
   }
 
   const statItems = [
-    { label: "Top Streak", value: stats?.maxStreak || 0, icon: Flame, color: "text-purple-500" },
-    { label: "Done Tasks", value: stats?.completedCount || 0, icon: CheckCircle2, color: "text-green-500" },
-    { label: "Due Today", value: stats?.dueTodayCount || 0, icon: Calendar, color: "text-blue-500" },
-    { label: "Total Goals", value: todos?.length || 0, icon: Star, color: "text-amber-500" }
+    { label: "Top Streak", value: stats?.maxStreak || 0, icon: Flame, color: "text-purple-600 dark:text-purple-400" },
+    { label: "Done Tasks", value: stats?.completedCount || 0, icon: CheckCircle2, color: "text-green-600 dark:text-green-400" },
+    { label: "Due Today", value: stats?.dueTodayCount || 0, icon: Calendar, color: "text-blue-600 dark:text-blue-400" },
+    { label: "Total Goals", value: todos?.length || 0, icon: Star, color: "text-amber-600 dark:text-amber-400" }
   ];
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-20">
       <header className="flex flex-col md:flex-row items-center justify-between gap-6">
         <div>
-          <h1 className="text-5xl font-black text-foreground flex items-center gap-4">
-            Flow State <TeddyIcon variant="paw" size={40} color={profile?.teddyColor} className="animate-teddy" />
+          <h1 className="text-5xl md:text-6xl font-black text-high-contrast flex items-center gap-4">
+            Flow State <TeddyIcon variant="paw" size={48} color={profile?.teddyColor} className="animate-teddy" />
           </h1>
-          <p className="text-muted-foreground font-bold mt-2 uppercase tracking-widest text-xs flex items-center gap-2">
+          <p className="text-muted-foreground font-black mt-2 uppercase tracking-[0.2em] text-xs flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary animate-pulse" /> Welcome back, {profile?.displayName || 'User'}!
           </p>
         </div>
-        <div className="neon-badge px-6 py-2 flex items-center">
+        <div className="neon-badge px-6 py-3 flex items-center shadow-2xl">
           <Clock className="h-4 w-4 mr-2" /> {format(new Date(), 'EEEE, MMMM do')}
         </div>
       </header>
@@ -217,13 +213,13 @@ export default function Dashboard() {
             {statItems.map((item, idx) => (
               <CarouselItem key={idx} className="basis-[85%]">
                 <Card className="graph-card animate-shimmer h-full">
-                  <CardContent className="p-8 flex flex-col items-center text-center gap-4">
-                    <div className={cn("p-4 bg-white/10 rounded-[1.5rem] shadow-inner", item.color)}>
-                      <item.icon className="h-8 w-8" />
+                  <CardContent className="p-10 flex flex-col items-center text-center gap-6">
+                    <div className={cn("p-5 bg-white/20 dark:bg-black/20 rounded-[2rem] shadow-inner", item.color)}>
+                      <item.icon className="h-10 w-10" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mb-1">{item.label}</p>
-                      <p className="text-4xl font-black"><AnimatedNumber value={item.value} /></p>
+                      <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mb-2">{item.label}</p>
+                      <p className="text-5xl font-black text-high-contrast"><AnimatedNumber value={item.value} /></p>
                     </div>
                   </CardContent>
                 </Card>
@@ -234,16 +230,16 @@ export default function Dashboard() {
       </div>
 
       {/* STAT CARDS DESKTOP GRID */}
-      <div className="hidden md:grid grid-cols-4 gap-6">
+      <div className="hidden md:grid grid-cols-4 gap-8">
         {statItems.map((item, idx) => (
-          <Card key={idx} className="graph-card group hover:scale-[1.05] transition-all animate-shimmer">
-            <CardContent className="p-6 flex items-center gap-5">
-              <div className={cn("p-4 bg-white/10 rounded-2xl group-hover:rotate-12 transition-transform", item.color)}>
-                <item.icon className="h-7 w-7" />
+          <Card key={idx} className="graph-card group animate-shimmer">
+            <CardContent className="p-8 flex items-center gap-6">
+              <div className={cn("p-5 bg-white/20 dark:bg-black/20 rounded-2xl group-hover:rotate-12 transition-transform", item.color)}>
+                <item.icon className="h-8 w-8" />
               </div>
               <div>
-                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mb-0.5">{item.label}</p>
-                <p className="text-3xl font-black"><AnimatedNumber value={item.value} /></p>
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1">{item.label}</p>
+                <p className="text-4xl font-black text-high-contrast"><AnimatedNumber value={item.value} /></p>
               </div>
             </CardContent>
           </Card>
@@ -252,49 +248,49 @@ export default function Dashboard() {
 
       {/* GRAPHS GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="graph-card lg:col-span-1 min-h-[400px]">
+        <Card className="graph-card lg:col-span-1 min-h-[450px]">
           <CardHeader>
-            <CardTitle className="text-lg font-black flex items-center gap-3">
-              <TrendingUp className="h-5 w-5 text-purple-500" /> Streak Momentum
+            <CardTitle className="text-xl font-black flex items-center gap-3 text-high-contrast">
+              <TrendingUp className="h-6 w-6 text-purple-500" /> Streak Momentum
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-[300px] w-full mt-4">
+          <CardContent className="h-[320px] w-full mt-6">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={stats?.streakHistory || []}>
                 <defs>
                   <linearGradient id="colorStreak" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#A855F7" stopOpacity={0.4}/>
+                    <stop offset="5%" stopColor="#A855F7" stopOpacity={0.6}/>
                     <stop offset="95%" stopColor="#A855F7" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#888" opacity={0.1} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#888" opacity={0.2} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888', fontWeight: 900}} />
                 <YAxis hide />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.85)', borderRadius: '1.5rem', border: 'none', backdropFilter: 'blur(10px)' }}
-                  itemStyle={{ color: '#fff' }}
+                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.9)', borderRadius: '1.5rem', border: 'none', backdropFilter: 'blur(15px)' }}
+                  itemStyle={{ color: '#fff', fontWeight: 900 }}
                 />
                 <Area 
                   type="monotone" 
                   dataKey="streak" 
                   stroke="#A855F7" 
-                  strokeWidth={4} 
+                  strokeWidth={5} 
                   fillOpacity={1} 
                   fill="url(#colorStreak)" 
-                  dot={{r: 5, fill: '#A855F7', strokeWidth: 2, stroke: '#fff'}}
+                  dot={{r: 6, fill: '#A855F7', strokeWidth: 3, stroke: '#fff'}}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card className="graph-card lg:col-span-1 min-h-[400px]">
+        <Card className="graph-card lg:col-span-1 min-h-[450px]">
           <CardHeader>
-            <CardTitle className="text-lg font-black flex items-center gap-3">
-              <BarChart3 className="h-5 w-5 text-blue-500" /> Weekly Output
+            <CardTitle className="text-xl font-black flex items-center gap-3 text-high-contrast">
+              <BarChart3 className="h-6 w-6 text-blue-500" /> Weekly Output
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-[300px] w-full mt-4">
+          <CardContent className="h-[320px] w-full mt-6">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats?.weeklyData || []}>
                 <defs>
@@ -306,10 +302,10 @@ export default function Dashboard() {
                 <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888', fontWeight: 900}} />
                 <YAxis hide />
                 <Tooltip 
-                  cursor={{fill: 'rgba(255,255,255,0.05)'}}
-                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.85)', borderRadius: '1.5rem', border: 'none' }}
+                  cursor={{fill: 'rgba(255,255,255,0.1)'}}
+                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.9)', borderRadius: '1.5rem', border: 'none' }}
                 />
-                <Bar dataKey="tasks" radius={[10, 10, 10, 10]}>
+                <Bar dataKey="tasks" radius={[12, 12, 12, 12]}>
                   {(stats?.weeklyData || []).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill="url(#colorBar)" />
                   ))}
@@ -319,16 +315,16 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="graph-card min-h-[400px]">
+        <Card className="graph-card min-h-[450px]">
           <CardHeader>
-            <CardTitle className="text-lg font-black flex items-center gap-3">
-              <PieChartIcon className="h-5 w-5 text-pink-500" /> Focus Ratio
+            <CardTitle className="text-xl font-black flex items-center gap-3 text-high-contrast">
+              <PieChartIcon className="h-6 w-6 text-pink-500" /> Focus Ratio
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-[300px] w-full relative flex items-center justify-center">
+          <CardContent className="h-[320px] w-full relative flex items-center justify-center">
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              <div className="bg-white/10 p-4 rounded-full backdrop-blur-md animate-spin-slow">
-                <TeddyIcon variant={profile?.teddyVariant as any || 'magic-panda'} size={48} color={profile?.teddyColor} />
+              <div className="bg-white/20 dark:bg-black/40 p-5 rounded-full backdrop-blur-xl animate-spin-slow border-2 border-white/30">
+                <TeddyIcon variant={profile?.teddyVariant as any || 'magic-panda'} size={56} color={profile?.teddyColor} />
               </div>
             </div>
             <ResponsiveContainer width="100%" height="100%">
@@ -337,9 +333,9 @@ export default function Dashboard() {
                   data={stats?.chartData || []}
                   cx="50%"
                   cy="50%"
-                  innerRadius={85}
-                  outerRadius={110}
-                  paddingAngle={8}
+                  innerRadius={95}
+                  outerRadius={125}
+                  paddingAngle={10}
                   dataKey="value"
                   stroke="none"
                 >
@@ -355,13 +351,13 @@ export default function Dashboard() {
       </div>
 
       {/* TODO LIST */}
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-black flex items-center gap-3">
-            <TrendingUp className="h-7 w-7 text-primary" /> Active Flow
+          <h2 className="text-4xl font-black flex items-center gap-4 text-high-contrast">
+            <TrendingUp className="h-8 w-8 text-primary" /> Active Flow
           </h2>
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-[160px] graph-card border-none h-12 rounded-2xl font-bold px-4">
+            <SelectTrigger className="w-[180px] graph-card border-none h-14 rounded-2xl font-black px-6 shadow-xl">
               <SelectValue placeholder="Filter" />
             </SelectTrigger>
             <SelectContent className="glass-card">
@@ -373,57 +369,57 @@ export default function Dashboard() {
           </Select>
         </div>
 
-        <ScrollArea className="h-[500px] pr-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ScrollArea className="h-[550px] pr-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {isTodosLoading && (
-              <div className="col-span-full flex justify-center py-20">
-                <Loader2 className="h-10 w-10 animate-spin text-primary/50" />
+              <div className="col-span-full flex justify-center py-24">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
               </div>
             )}
             {!isTodosLoading && filteredTodos?.length === 0 && (
-              <div className="col-span-full text-center py-24 graph-card border-dashed">
-                <TeddyIcon variant="todos" size={64} className="mx-auto opacity-20 mb-4" />
-                <p className="text-muted-foreground font-black">All clear! Relax and enjoy. 🐻☕</p>
+              <div className="col-span-full text-center py-32 graph-card border-dashed">
+                <TeddyIcon variant="todos" size={72} className="mx-auto opacity-30 mb-6" />
+                <p className="text-muted-foreground font-black text-lg">All clear! Relax and enjoy. 🐻☕</p>
               </div>
             )}
             {filteredTodos?.map((todo) => (
               <Card 
                 key={todo.id} 
                 className={cn(
-                  "graph-card group hover:translate-y-[-4px] transition-all duration-300",
-                  todo.completed && "opacity-60 grayscale-[0.5]"
+                  "todo-card group transition-all duration-300",
+                  todo.completed && "opacity-60 grayscale-[0.3]"
                 )}
               >
-                <CardContent className="p-6 flex items-center gap-5">
+                <CardContent className="p-8 flex items-center gap-6">
                   <button 
                     onClick={() => toggleTodo(todo)}
                     className={cn(
                       "shrink-0 transition-all transform hover:scale-125",
-                      todo.completed ? "text-green-500" : "text-zinc-500"
+                      todo.completed ? "text-green-500" : "text-zinc-500 dark:text-zinc-400"
                     )}
                   >
-                    {todo.completed ? <CheckCircle2 className="h-8 w-8" /> : <Circle className="h-8 w-8" />}
+                    {todo.completed ? <CheckCircle2 className="h-10 w-10" /> : <Circle className="h-10 w-10" />}
                   </button>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center flex-wrap gap-2 mb-1">
+                    <div className="flex items-center flex-wrap gap-2 mb-2">
                       <p className={cn(
-                        "text-lg font-black truncate",
-                        todo.completed && "line-through text-muted-foreground"
+                        "text-xl font-black truncate text-high-contrast",
+                        todo.completed && "line-through opacity-50"
                       )}>
                         {todo.title}
                       </p>
                     </div>
                     
-                    <div className="flex items-center gap-4 text-[10px] text-muted-foreground font-black uppercase tracking-widest">
+                    <div className="flex items-center gap-5 text-[11px] text-muted-foreground font-black uppercase tracking-widest">
                       {todo.dueDate && (
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" /> {format(parseISO(todo.dueDate), 'MMM d')}
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5" /> {format(parseISO(todo.dueDate), 'MMM d')}
                         </span>
                       )}
                       {todo.isDaily && (
-                        <span className="flex items-center gap-1 text-purple-400">
-                          <Zap className="h-3 w-3" /> {todo.streakDays || 0} Streak
+                        <span className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
+                          <Zap className="h-3.5 w-3.5" /> {todo.streakDays || 0} Streak
                         </span>
                       )}
                     </div>
@@ -443,9 +439,9 @@ export default function Dashboard() {
                       }
                     }}
                     disabled={breakingDownId === todo.id || todo.completed}
-                    className="text-primary hover:bg-primary/20 rounded-2xl w-12 h-12"
+                    className="text-primary hover:bg-primary/20 rounded-2xl w-14 h-14 shadow-sm"
                   >
-                    {breakingDownId === todo.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <Wand2 className="h-6 w-6" />}
+                    {breakingDownId === todo.id ? <Loader2 className="h-6 w-6 animate-spin" /> : <Wand2 className="h-7 w-7" />}
                   </Button>
                 </CardContent>
               </Card>

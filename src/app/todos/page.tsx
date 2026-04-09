@@ -36,7 +36,8 @@ import {
   Circle,
   Wand2,
   Calendar,
-  Search
+  Search,
+  Sparkles
 } from "lucide-react";
 import { TeddyIcon } from "@/components/TeddyIcons";
 import { aiTaskBreakdown } from "@/ai/flows/ai-task-breakdown";
@@ -44,9 +45,9 @@ import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 
 const PRIORITY_COLORS = {
-  low: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  medium: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  high: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+  low: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-700",
+  medium: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-700",
+  high: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300 border-rose-200 dark:border-rose-700",
 };
 
 export default function TodosPage() {
@@ -73,7 +74,7 @@ export default function TodosPage() {
   if (!mounted || isUserLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
   }
@@ -119,139 +120,145 @@ export default function TodosPage() {
   });
 
   return (
-    <div className="max-w-4xl mx-auto p-4 sm:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="max-w-5xl mx-auto p-4 sm:p-8 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <header className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-primary/10 rounded-2xl">
-            <TeddyIcon variant="todos" size={32} />
+        <div className="flex items-center gap-4">
+          <div className="p-4 bg-primary/20 rounded-[2rem] shadow-xl animate-teddy">
+            <TeddyIcon variant="todos" size={40} />
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Focus Central</h1>
-            <p className="text-muted-foreground text-sm">Pawsitive productivity starts here!</p>
+            <h1 className="text-4xl font-black tracking-tight text-high-contrast">Focus Central</h1>
+            <p className="text-muted-foreground font-black text-xs uppercase tracking-[0.2em] flex items-center gap-2">
+              <Sparkles className="h-3 w-3 text-primary" /> Pawsitive productivity starts here!
+            </p>
           </div>
         </div>
       </header>
 
-      <Card className="todo-card border-none overflow-hidden group">
-        <CardContent className="p-6">
-          <form onSubmit={handleAddTodo} className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-3">
+      <Card className="todo-card border-none group shadow-2xl">
+        <CardContent className="p-8">
+          <form onSubmit={handleAddTodo} className="space-y-6">
+            <div className="flex flex-col md:flex-row gap-4">
               <Input 
                 placeholder="What's the goal for today?" 
                 value={newTodo}
                 onChange={(e) => setNewTodo(e.target.value)}
-                className="h-12 border-none bg-muted/30 focus-visible:ring-primary text-base px-4"
+                className="h-14 border-none bg-white/40 dark:bg-black/20 focus-visible:ring-primary text-lg px-6 font-bold rounded-2xl"
                 disabled={adding}
               />
-              <Button type="submit" className="h-12 px-8 gradient-btn font-semibold" disabled={adding}>
-                {adding ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5 mr-2" />}
+              <Button type="submit" className="h-14 px-10 gradient-btn shadow-2xl" disabled={adding}>
+                {adding ? <Loader2 className="h-6 w-6 animate-spin" /> : <Plus className="h-6 w-6 mr-2" />}
                 Add Task
               </Button>
             </div>
-            <div className="flex flex-wrap items-center gap-4 pt-2">
+            <div className="flex flex-wrap items-center gap-6">
               <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
-                <SelectTrigger className="w-[120px] h-9 bg-white/10 border-white/10">
+                <SelectTrigger className="w-[140px] h-11 bg-white/40 dark:bg-black/20 border-white/30 dark:border-purple-500/30 font-black rounded-xl">
                   <SelectValue placeholder="Priority" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="glass-card">
                   <SelectItem value="low">Low</SelectItem>
                   <SelectItem value="medium">Medium</SelectItem>
                   <SelectItem value="high">High</SelectItem>
                 </SelectContent>
               </Select>
-              <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
-                <Checkbox id="daily" checked={isDaily} onCheckedChange={(v: any) => setIsDaily(v)} />
-                <label htmlFor="daily" className="text-sm font-medium cursor-pointer">Daily Habit</label>
+              <div className="flex items-center gap-3 bg-white/40 dark:bg-black/20 px-4 py-2.5 rounded-xl border border-white/30 dark:border-purple-500/30">
+                <Checkbox id="daily" checked={isDaily} onCheckedChange={(v: any) => setIsDaily(v)} className="w-5 h-5 rounded-md" />
+                <label htmlFor="daily" className="text-sm font-black cursor-pointer text-high-contrast">Daily Habit</label>
               </div>
-              <Input 
-                type="date" 
-                value={dueDate} 
-                onChange={(e) => setDueDate(e.target.value)}
-                className="h-9 w-[160px] bg-white/10 border-white/10"
-              />
+              <div className="flex items-center gap-3 bg-white/40 dark:bg-black/20 px-4 py-2.5 rounded-xl border border-white/30 dark:border-purple-500/30 flex-1 md:flex-none">
+                <Calendar className="h-4 w-4 text-primary" />
+                <Input 
+                  type="date" 
+                  value={dueDate} 
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="h-6 border-none bg-transparent p-0 w-[130px] font-bold text-sm"
+                />
+              </div>
             </div>
           </form>
         </CardContent>
       </Card>
 
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-6">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input 
             placeholder="Search tasks..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 h-10 bg-white/10 border-white/10"
+            className="pl-12 h-12 bg-white/40 dark:bg-black/20 border-white/30 dark:border-purple-500/30 rounded-2xl font-bold"
           />
         </div>
         <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-[150px] bg-white/10 border-white/10">
+          <SelectTrigger className="w-[180px] h-12 bg-white/40 dark:bg-black/20 border-white/30 dark:border-purple-500/30 rounded-2xl font-black">
             <SelectValue placeholder="All Tasks" />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
+          <SelectContent className="glass-card">
+            <SelectItem value="all">Everything</SelectItem>
+            <SelectItem value="pending">Waiting</SelectItem>
             <SelectItem value="completed">Done</SelectItem>
             <SelectItem value="daily">Daily Only</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      <ScrollArea className="h-[600px] rounded-3xl">
-        <div className="space-y-3">
+      <ScrollArea className="h-[650px] pr-4">
+        <div className="space-y-4">
           {isLoading && (
-            <div className="flex justify-center py-20">
-              <Loader2 className="h-10 w-10 animate-spin text-primary/50" />
+            <div className="flex justify-center py-32">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
           )}
           {!isLoading && filteredTodos?.length === 0 && (
-            <div className="text-center py-20 bg-white/10 backdrop-blur rounded-3xl border border-dashed border-white/20">
-              <p className="text-muted-foreground">No tasks found. Time to add some goals?</p>
+            <div className="text-center py-32 bg-white/20 dark:bg-black/20 backdrop-blur-xl rounded-[3rem] border-4 border-dashed border-white/30 dark:border-purple-500/20">
+              <TeddyIcon variant="todos" size={80} className="mx-auto opacity-20 mb-6" />
+              <p className="text-muted-foreground font-black text-lg">No tasks found. Time to add some goals?</p>
             </div>
           )}
           {filteredTodos?.map((todo) => (
             <Card 
               key={todo.id} 
               className={cn(
-                "todo-card border-none transition-all duration-300 group hover:translate-x-1 border-l-4",
-                todo.completed ? "border-l-green-500 opacity-70" : 
+                "todo-card transition-all duration-300 group hover:translate-x-2 border-l-[6px] shadow-xl",
+                todo.completed ? "border-l-green-500 opacity-60" : 
                 todo.priority === 'high' ? "border-l-rose-500" :
                 todo.priority === 'medium' ? "border-l-amber-500" : "border-l-blue-500"
               )}
             >
-              <CardContent className="p-4 flex items-center gap-4">
+              <CardContent className="p-6 flex items-center gap-6">
                 <button 
                   onClick={() => toggleTodo(todo)}
                   className={cn(
-                    "shrink-0 transition-colors",
+                    "shrink-0 transition-all transform hover:scale-125",
                     todo.completed ? "text-green-500" : "text-muted-foreground hover:text-primary"
                   )}
                 >
-                  {todo.completed ? <CheckCircle2 className="h-6 w-6" /> : <Circle className="h-6 w-6" />}
+                  {todo.completed ? <CheckCircle2 className="h-9 w-9" /> : <Circle className="h-9 w-9" />}
                 </button>
                 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center flex-wrap gap-2">
+                  <div className="flex items-center flex-wrap gap-3">
                     <span className={cn(
-                      "text-lg font-medium truncate",
-                      todo.completed && "line-through text-muted-foreground"
+                      "text-xl font-black truncate text-high-contrast",
+                      todo.completed && "line-through opacity-50"
                     )}>
                       {todo.title}
                     </span>
                     {todo.priority && (
-                      <Badge variant="outline" className={cn("text-[10px] h-5 uppercase", PRIORITY_COLORS[todo.priority as keyof typeof PRIORITY_COLORS])}>
+                      <Badge className={cn("text-[10px] h-6 uppercase font-black px-3 rounded-lg border-2", PRIORITY_COLORS[todo.priority as keyof typeof PRIORITY_COLORS])}>
                         {todo.priority}
                       </Badge>
                     )}
                   </div>
                   {todo.dueDate && (
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1">
-                      <Calendar className="h-3 w-3" /> Due: {format(parseISO(todo.dueDate), 'MMM d')}
+                    <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground mt-2">
+                      <Calendar className="h-3.5 w-3.5" /> Due: {format(parseISO(todo.dueDate), 'MMM d')}
                     </div>
                   )}
                 </div>
 
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
                   <Button 
                     variant="ghost" 
                     size="icon" 
@@ -266,8 +273,9 @@ export default function TodosPage() {
                       }
                     }}
                     disabled={breakingDownId === todo.id || todo.completed}
+                    className="w-12 h-12 rounded-xl hover:bg-primary/20 text-primary shadow-sm"
                   >
-                    {breakingDownId === todo.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                    {breakingDownId === todo.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <Wand2 className="h-5 w-5" />}
                   </Button>
                   <Button 
                     variant="ghost" 
@@ -276,9 +284,9 @@ export default function TodosPage() {
                       const docRef = doc(db!, "users", user!.uid, "todos", todo.id);
                       deleteDocumentNonBlocking(docRef);
                     }}
-                    className="text-destructive hover:bg-destructive/10"
+                    className="w-12 h-12 rounded-xl text-destructive hover:bg-destructive/10 shadow-sm"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-5 w-5" />
                   </Button>
                 </div>
               </CardContent>
