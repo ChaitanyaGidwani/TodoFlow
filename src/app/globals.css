@@ -4,9 +4,9 @@
 
 @layer base {
   :root {
-    --background: 180 47% 95%;
+    --background: 240 10% 95%;
     --foreground: 240 10% 3.9%;
-    --card: 0 0% 100% / 0.85;
+    --card: 0 0% 100% / 0.1;
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
@@ -26,14 +26,12 @@
     --radius: 1.25rem;
     
     --bg-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 50%, #b5acc6 100%);
-    --teddy-color-1: #8b5cf6;
-    --teddy-color-2: #3b82f6;
   }
 
   .dark {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
-    --card: 240 10% 10% / 0.95;
+    --card: 240 10% 10% / 0.2;
     --card-foreground: 0 0% 98%;
     --primary: 263 70% 70%;
     --primary-foreground: 240 10% 3.9%;
@@ -42,8 +40,6 @@
     --input: 240 3.7% 15.9%;
     
     --bg-gradient: linear-gradient(135deg, #0f0f23 0%, #2a1b3d 50%, #1a0f2e 100%);
-    --teddy-color-1: #a78bfa;
-    --teddy-color-2: #c084fc;
   }
 }
 
@@ -57,37 +53,34 @@
   }
 }
 
+.glass-card {
+  @apply backdrop-blur-xl bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.1)];
+}
+
+.glass-glow {
+  box-shadow: 0 25px 45px rgba(168, 85, 247, 0.2);
+}
+
 .pattern-paws {
-  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm10 0c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-5 5c2.2 0 4-1.8 4-4s-1.8-4-4-4-4 1.8-4 4 1.8 4 4 4z' fill='%238b5cf6' fill-opacity='0.1'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm10 0c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-5 5c2.2 0 4-1.8 4-4s-1.8-4-4-4-4 1.8-4 4 1.8 4 4 4z' fill='%23a855f7' fill-opacity='0.05'/%3E%3C/svg%3E");
 }
 
 .pattern-dots {
-  background-image: radial-gradient(#8b5cf6 1px, transparent 1px);
+  background-image: radial-gradient(rgba(168, 85, 247, 0.1) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
 .pattern-stripes {
-  background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(139, 92, 246, 0.08) 10px, rgba(139, 92, 246, 0.08) 20px);
+  background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(168, 85, 247, 0.05) 10px, rgba(168, 85, 247, 0.1) 20px);
 }
 
 .pattern-stars {
-  background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z' fill='%238b5cf6' fill-opacity='0.1'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z' fill='%23a855f7' fill-opacity='0.05'/%3E%3C/svg%3E");
 }
 
-.todo-card {
-  @apply backdrop-blur-xl bg-card shadow-[0_8px_32px_rgba(0,0,0,0.05)] border-white/20 transition-all duration-300;
+.icon-gallery::-webkit-scrollbar {
+  height: 6px;
 }
-
-.gradient-btn {
-  @apply bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90 shadow-md transition-all active:scale-[0.98];
-}
-
-.animate-teddy {
-  animation: teddy-dance 1.5s infinite ease-in-out;
-}
-
-@keyframes teddy-dance {
-  0%, 100% { transform: translateY(0) rotate(0); }
-  25% { transform: translateY(-5px) rotate(-5deg); }
-  75% { transform: translateY(-5px) rotate(5deg); }
+.icon-gallery::-webkit-scrollbar-thumb {
+  @apply bg-primary/20 rounded-full;
 }
