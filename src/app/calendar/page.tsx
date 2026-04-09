@@ -76,7 +76,6 @@ export default function CalendarPage() {
     if (!newTodoTitle.trim() || !selectedDay || !user || !db) return;
     
     const colRef = collection(db, "users", user.uid, "todos");
-    // Ensure we save the dueDate as an ISO string representing the start of that day
     const dateToSave = startOfDay(selectedDay).toISOString();
     
     addDocumentNonBlocking(colRef, {
@@ -94,6 +93,13 @@ export default function CalendarPage() {
     setSelectedDay(null);
   };
 
+  const handleDaySelect = (e: React.MouseEvent, day: Date) => {
+    // Prevent layout jumps by stopping event propagation
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedDay(day);
+  };
+
   if (!mounted || loading) return (
     <div className="min-h-screen flex items-center justify-center">
       <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -107,7 +113,7 @@ export default function CalendarPage() {
     )}>
       <header className="flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <div className="p-4 bg-primary/20 rounded-[2.5rem] shadow-xl animate-teddy border-2 border-primary/30">
+          <div className="p-4 glass-card rounded-[2.5rem] shadow-xl animate-teddy border-primary/30">
             <TeddyIcon variant="calendar" size={44} color={profile?.teddyColor} />
           </div>
           <div>
@@ -117,7 +123,7 @@ export default function CalendarPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 glass-card p-2 rounded-2xl border-none shadow-2xl">
+        <div className="flex items-center gap-2 glass-card p-2 rounded-2xl shadow-lg">
           <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="hover:bg-primary/10 rounded-xl">
             <ChevronLeft className="h-6 w-6" />
           </Button>
@@ -130,8 +136,8 @@ export default function CalendarPage() {
         </div>
       </header>
 
-      <Card className="todo-card border-none shadow-2xl overflow-hidden rounded-[2.5rem]">
-        <div className="grid grid-cols-7 border-b border-white/10 bg-white/30 backdrop-blur-xl text-center py-5 font-black text-xs uppercase tracking-widest text-muted-foreground">
+      <Card className="glass-card border-none overflow-hidden rounded-[2.5rem]">
+        <div className="grid grid-cols-7 border-b border-white/10 bg-white/20 text-center py-5 font-black text-xs uppercase tracking-widest text-muted-foreground">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d}>{d}</div>)}
         </div>
         <div className="grid grid-cols-7">
@@ -141,14 +147,14 @@ export default function CalendarPage() {
             const isSelectedMonth = isSameMonth(day, currentMonth);
 
             return (
-              <Dialog key={day.toString()}>
+              <Dialog key={day.toString()} open={selectedDay ? isSameDay(selectedDay, day) : false} onOpenChange={(open) => !open && setSelectedDay(null)}>
                 <DialogTrigger asChild>
                   <div 
-                    onClick={() => setSelectedDay(day)}
+                    onClick={(e) => handleDaySelect(e, day)}
                     className={cn(
-                      "min-h-[120px] sm:min-h-[150px] p-3 border-r border-b border-white/10 relative cursor-pointer hover:bg-white/50 transition-all group",
+                      "calendar-cell min-h-[120px] sm:min-h-[150px] p-3 border-r border-b border-white/10 group",
                       !isSelectedMonth && "opacity-20",
-                      isTodayDate && "bg-primary/10",
+                      isTodayDate && "bg-primary/5",
                       status.hasTasks && "animate-pulse-slow"
                     )}
                   >
@@ -166,17 +172,17 @@ export default function CalendarPage() {
                         </div>
                       )}
                       {status.allDone && (
-                        <div className="animate-in zoom-in duration-300 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
+                        <div className="animate-in zoom-in duration-300">
                           <TeddyIcon variant="todos" size={22} color="#10b981" />
                         </div>
                       )}
                       {status.hasDaily && (
-                        <div className="animate-in zoom-in duration-300 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]">
+                        <div className="animate-in zoom-in duration-300">
                           <TeddyIcon variant="flame" size={22} color="#f59e0b" />
                         </div>
                       )}
                       {status.hasBadge && (
-                        <div className="animate-in zoom-in duration-300 drop-shadow-[0_0_8px_rgba(139,92,246,0.5)]">
+                        <div className="animate-in zoom-in duration-300">
                           <TeddyIcon variant="star" size={22} color="#8b5cf6" />
                         </div>
                       )}
@@ -189,7 +195,7 @@ export default function CalendarPage() {
                     </div>
                   </div>
                 </DialogTrigger>
-                <DialogContent className="todo-card border-none sm:max-w-md rounded-[2.5rem] shadow-2xl">
+                <DialogContent className="glass-card border-none sm:max-w-md rounded-[2.5rem] fixed top-[20%] translate-y-0">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-4 text-2xl font-black text-high-contrast">
                       <div className="p-3 bg-primary/10 rounded-2xl border border-primary/20">
@@ -199,7 +205,7 @@ export default function CalendarPage() {
                     </DialogTitle>
                   </DialogHeader>
                   <div className="space-y-6 pt-4">
-                    <div className="space-y-3 max-h-[350px] overflow-auto pr-2 custom-scrollbar">
+                    <div className="space-y-3 max-h-[350px] overflow-auto pr-2">
                       {getDayTodos(day).length === 0 ? (
                         <div className="text-center py-12 space-y-4">
                           <div className="bg-primary/5 p-6 rounded-full w-fit mx-auto animate-teddy">
@@ -209,7 +215,7 @@ export default function CalendarPage() {
                         </div>
                       ) : (
                         getDayTodos(day).map(t => (
-                          <div key={t.id} className="flex items-center gap-4 p-5 bg-white/60 dark:bg-black/20 rounded-[1.5rem] border-2 border-white/30 dark:border-purple-500/10 shadow-sm hover:scale-[1.02] transition-transform">
+                          <div key={t.id} className="flex items-center gap-4 p-5 bg-white/40 dark:bg-black/20 rounded-[1.5rem] border border-white/20 dark:border-purple-500/10 shadow-sm hover:scale-[1.02] transition-transform">
                             <div className={cn(
                               "p-2 rounded-xl",
                               t.completed ? "bg-green-100 dark:bg-green-900/30" : "bg-primary/10"
@@ -236,7 +242,7 @@ export default function CalendarPage() {
                         value={newTodoTitle}
                         onChange={(e) => setNewTodoTitle(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleAddTodo()}
-                        className="bg-white/60 dark:bg-black/30 border-2 border-white/40 dark:border-purple-500/20 h-14 rounded-2xl font-black px-6 shadow-inner focus-visible:ring-primary"
+                        className="bg-white/40 dark:bg-black/30 border-white/20 dark:border-purple-500/20 h-14 rounded-2xl font-black px-6 shadow-inner focus-visible:ring-primary"
                       />
                       <Button onClick={handleAddTodo} className="gradient-btn h-14 px-8 rounded-2xl font-black shadow-xl hover:scale-105 active:scale-95 transition-all">Add</Button>
                     </div>
