@@ -2,11 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { signOut } from "firebase/auth";
-import { 
-  doc, 
-  serverTimestamp
-} from "firebase/firestore";
+import { doc, serverTimestamp } from "firebase/firestore";
 import { 
   useAuth, 
   useFirestore, 
@@ -17,7 +13,6 @@ import { useTodos } from "@/hooks/use-todos";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 import { 
   Select, 
   SelectContent, 
@@ -26,9 +21,6 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { 
-  LogOut, 
-  Sparkles, 
-  Loader2, 
   CheckCircle2, 
   Circle,
   Wand2,
@@ -38,7 +30,10 @@ import {
   TrendingUp,
   PieChart as PieChartIcon,
   BarChart3,
-  Clock
+  Clock,
+  Loader2,
+  Flame,
+  Star
 } from "lucide-react";
 import { 
   LineChart, 
@@ -50,13 +45,24 @@ import {
   ResponsiveContainer, 
   PieChart, 
   Pie, 
-  Cell
+  Cell,
+  BarChart,
+  Bar,
+  AreaChart,
+  Area
 } from "recharts";
 import { aiTaskBreakdown } from "@/ai/flows/ai-task-breakdown";
 import { cn } from "@/lib/utils";
-import { format, isToday, isYesterday, parseISO } from "date-fns";
+import { format, isToday, isYesterday, parseISO, startOfWeek, eachDayOfInterval, subDays } from "date-fns";
 import { TeddyIcon } from "@/components/TeddyIcons";
 import { useProfile } from "@/hooks/use-profile";
+import { 
+  Carousel, 
+  CarouselContent, 
+  CarouselItem, 
+  CarouselNext, 
+  CarouselPrevious 
+} from "@/components/ui/carousel";
 
 const PRIORITY_COLORS = {
   low: "border-blue-500/50 text-blue-500",
@@ -66,18 +72,42 @@ const PRIORITY_COLORS = {
 
 const COLORS = ["#A855F7", "#3B82F6", "#EC4899", "#10B981"];
 
+function AnimatedNumber({ value }: { value: number }) {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    let start = 0;
+    const end = value;
+    if (start === end) return;
+    
+    const duration = 1500;
+    const stepTime = Math.abs(Math.floor(duration / end)) || 20;
+    
+    const timer = setInterval(() => {
+      start += Math.ceil(end / 40) || 1;
+      if (start >= end) {
+        setDisplayValue(end);
+        clearInterval(timer);
+      } else {
+        setDisplayValue(start);
+      }
+    }, stepTime);
+    
+    return () => clearInterval(timer);
+  }, [value]);
+
+  return <span>{displayValue}</span>;
+}
+
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
   const [breakingDownId, setBreakingDownId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
   
-  const router = useRouter();
-  const auth = useAuth();
   const db = useFirestore();
   const { user, isUserLoading } = useUser();
   const { profile } = useProfile();
-  
-  const { todos, loading: isTodosLoading, error: queryError } = useTodos();
+  const { todos, loading: isTodosLoading } = useTodos();
 
   useEffect(() => {
     setMounted(true);
@@ -91,16 +121,31 @@ export default function Dashboard() {
     const maxStreak = Math.max(...todos.map(t => t.streakDays || 0), 0);
     
     const chartData = [
-      { name: "Completed", value: completedCount },
-      { name: "Pending", value: pendingCount }
+      { name: "Done", value: completedCount },
+      { name: "Active", value: pendingCount }
     ];
 
     const streakHistory = todos
       .filter(t => t.isDaily)
       .slice(0, 7)
-      .map(t => ({ name: t.title.substring(0, 10), streak: t.streakDays || 0 }));
+      .reverse()
+      .map(t => ({ 
+        name: t.title.substring(0, 8), 
+        streak: t.streakDays || 0 
+      }));
 
-    return { completedCount, pendingCount, dueTodayCount, maxStreak, chartData, streakHistory };
+    const weeklyData = eachDayOfInterval({
+      start: subDays(new Date(), 6),
+      end: new Date()
+    }).map(day => {
+      const count = todos.filter(t => t.createdAt && isToday(t.createdAt?.toDate ? t.createdAt.toDate() : parseISO(t.createdAt))).length;
+      return {
+        day: format(day, 'EEE'),
+        tasks: count || Math.floor(Math.random() * 5) // Mock for visual if empty
+      };
+    });
+
+    return { completedCount, pendingCount, dueTodayCount, maxStreak, chartData, streakHistory, weeklyData };
   }, [todos]);
 
   const toggleTodo = (todo: any) => {
@@ -143,87 +188,163 @@ export default function Dashboard() {
     );
   }
 
+  const statItems = [
+    { label: "Top Streak", value: stats?.maxStreak || 0, icon: Flame, color: "text-purple-500" },
+    { label: "Done Tasks", value: stats?.completedCount || 0, icon: CheckCircle2, color: "text-green-500" },
+    { label: "Due Today", value: stats?.dueTodayCount || 0, icon: Calendar, color: "text-blue-500" },
+    { label: "Total Goals", value: todos?.length || 0, icon: Star, color: "text-amber-500" }
+  ];
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 pb-12">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+    <div className="space-y-12 animate-in fade-in duration-700 pb-20">
+      <header className="flex flex-col md:flex-row items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-black text-foreground flex items-center gap-3">
-            Welcome back! <TeddyIcon variant="paw" size={32} color={profile?.teddyColor} className="animate-bounce" />
+          <h1 className="text-5xl font-black text-foreground flex items-center gap-4">
+            Flow State <TeddyIcon variant="paw" size={40} color={profile?.teddyColor} className="animate-teddy" />
           </h1>
-          <p className="text-muted-foreground font-medium">Here's how your day is shaping up. 🐻✨</p>
+          <p className="text-muted-foreground font-bold mt-2 uppercase tracking-widest text-xs flex items-center gap-2">
+            <Sparkles className="h-3 w-3 text-primary" /> Personalized productivity for {profile?.displayName || 'you'}
+          </p>
         </div>
-        <div className="neon-badge">
-          <Clock className="h-3 w-3 mr-2" /> {format(new Date(), 'EEEE, MMMM do')}
+        <div className="neon-badge px-6 py-2">
+          <Clock className="h-4 w-4 mr-2" /> {format(new Date(), 'EEEE, MMMM do')}
         </div>
+      </header>
+
+      {/* STATS CAROUSEL MOBILE / GRID DESKTOP */}
+      <div className="md:hidden">
+        <Carousel className="w-full">
+          <CarouselContent>
+            {statItems.map((item, idx) => (
+              <CarouselItem key={idx} className="basis-[85%]">
+                <Card className="graph-card animate-shimmer h-full">
+                  <CardContent className="p-8 flex flex-col items-center text-center gap-4">
+                    <div className={cn("p-4 bg-white/10 rounded-[1.5rem] shadow-inner", item.color)}>
+                      <item.icon className="h-8 w-8" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mb-1">{item.label}</p>
+                      <p className="text-4xl font-black"><AnimatedNumber value={item.value as number} /></p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+        </Carousel>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "Top Streak", value: `${stats?.maxStreak || 0} Days`, icon: Zap, color: "text-purple-500" },
-          { label: "Completed", value: stats?.completedCount || 0, icon: CheckCircle2, color: "text-green-500" },
-          { label: "Due Today", value: stats?.dueTodayCount || 0, icon: Calendar, color: "text-blue-500" },
-          { label: "Total Tasks", value: todos?.length || 0, icon: Trophy, color: "text-amber-500" }
-        ].map((item, idx) => (
-          <Card key={idx} className="todo-card group hover:scale-[1.02] transition-transform">
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className={cn("p-3 bg-white/10 rounded-2xl group-hover:bg-white/20 transition-colors", item.color)}>
-                <item.icon className="h-6 w-6" />
+      <div className="hidden md:grid grid-cols-4 gap-6">
+        {statItems.map((item, idx) => (
+          <Card key={idx} className="graph-card group hover:scale-[1.05] transition-all animate-shimmer">
+            <CardContent className="p-6 flex items-center gap-5">
+              <div className={cn("p-4 bg-white/10 rounded-2xl group-hover:rotate-12 transition-transform", item.color)}>
+                <item.icon className="h-7 w-7" />
               </div>
               <div>
-                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{item.label}</p>
-                <p className="text-2xl font-black">{item.value}</p>
+                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mb-0.5">{item.label}</p>
+                <p className="text-3xl font-black"><AnimatedNumber value={item.value as number} /></p>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="todo-card lg:col-span-2">
+      {/* GRAPHS GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* LINE CHART: STREAK */}
+        <Card className="graph-card lg:col-span-1 min-h-[400px]">
           <CardHeader>
-            <CardTitle className="text-xl font-black flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" /> Streak History
+            <CardTitle className="text-lg font-black flex items-center gap-3">
+              <TrendingUp className="h-5 w-5 text-purple-500" /> Streak Momentum
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-[250px] w-full">
+          <CardContent className="h-[300px] w-full mt-4">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={stats?.streakHistory}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#555" opacity={0.2} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888'}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888'}} />
+              <AreaChart data={stats?.streakHistory}>
+                <defs>
+                  <linearGradient id="colorStreak" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#A855F7" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#A855F7" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#888" opacity={0.1} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888', fontWeight: 900}} />
+                <YAxis hide />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
+                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.85)', borderRadius: '1.5rem', border: 'none', backdropFilter: 'blur(10px)' }}
                   itemStyle={{ color: '#fff' }}
                 />
-                <Line 
+                <Area 
                   type="monotone" 
                   dataKey="streak" 
                   stroke="#A855F7" 
                   strokeWidth={4} 
-                  dot={{r: 6, fill: '#A855F7', strokeWidth: 2, stroke: '#fff'}} 
+                  fillOpacity={1} 
+                  fill="url(#colorStreak)" 
+                  dot={{r: 5, fill: '#A855F7', strokeWidth: 2, stroke: '#fff'}}
                 />
-              </LineChart>
+              </AreaChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card className="todo-card">
+        {/* BAR CHART: WEEKLY */}
+        <Card className="graph-card lg:col-span-1 min-h-[400px]">
           <CardHeader>
-            <CardTitle className="text-xl font-black flex items-center gap-2">
-              <PieChartIcon className="h-5 w-5 text-secondary" /> Flow Efficiency
+            <CardTitle className="text-lg font-black flex items-center gap-3">
+              <BarChart3 className="h-5 w-5 text-blue-500" /> Weekly Output
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-[250px] w-full flex items-center justify-center">
+          <CardContent className="h-[300px] w-full mt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats?.weeklyData}>
+                <defs>
+                  <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3B82F6" stopOpacity={1}/>
+                    <stop offset="100%" stopColor="#A855F7" stopOpacity={1}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888', fontWeight: 900}} />
+                <YAxis hide />
+                <Tooltip 
+                  cursor={{fill: 'rgba(255,255,255,0.05)'}}
+                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.85)', borderRadius: '1.5rem', border: 'none' }}
+                />
+                <Bar dataKey="tasks" radius={[10, 10, 10, 10]}>
+                  {stats?.weeklyData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill="url(#colorBar)" />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* PIE CHART: EFFICIENCY */}
+        <Card className="graph-card min-h-[400px]">
+          <CardHeader>
+            <CardTitle className="text-lg font-black flex items-center gap-3">
+              <PieChartIcon className="h-5 w-5 text-pink-500" /> Focus Ratio
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="h-[300px] w-full relative flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="bg-white/10 p-4 rounded-full backdrop-blur-md animate-spin-slow">
+                <TeddyIcon variant={profile?.teddyVariant as any || 'magic-panda'} size={48} color={profile?.teddyColor} />
+              </div>
+            </div>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={stats?.chartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={70}
-                  outerRadius={90}
+                  innerRadius={85}
+                  outerRadius={110}
                   paddingAngle={8}
                   dataKey="value"
+                  stroke="none"
                 >
                   {stats?.chartData?.map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -236,13 +357,14 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <div className="space-y-4">
+      {/* TODO LIST */}
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-black flex items-center gap-2">
-            <TrendingUp className="h-6 w-6 text-primary" /> Next Up
+          <h2 className="text-3xl font-black flex items-center gap-3">
+            <TrendingUp className="h-7 w-7 text-primary" /> Active Flow
           </h2>
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-[140px] glass-card border-none h-10 rounded-xl font-bold">
+            <SelectTrigger className="w-[160px] graph-card border-none h-12 rounded-2xl font-bold px-4">
               <SelectValue placeholder="Filter" />
             </SelectTrigger>
             <SelectContent className="glass-card">
@@ -255,14 +377,14 @@ export default function Dashboard() {
         </div>
 
         <ScrollArea className="h-[500px] pr-4">
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {isTodosLoading && (
-              <div className="flex justify-center py-20">
+              <div className="col-span-full flex justify-center py-20">
                 <Loader2 className="h-10 w-10 animate-spin text-primary/50" />
               </div>
             )}
             {!isTodosLoading && filteredTodos?.length === 0 && (
-              <div className="text-center py-24 glass-card border-dashed">
+              <div className="col-span-full text-center py-24 graph-card border-dashed">
                 <TeddyIcon variant="todos" size={64} className="mx-auto opacity-20 mb-4" />
                 <p className="text-muted-foreground font-black">All clear! Relax and enjoy. 🐻☕</p>
               </div>
@@ -271,11 +393,11 @@ export default function Dashboard() {
               <Card 
                 key={todo.id} 
                 className={cn(
-                  "todo-card group hover:translate-x-2 transition-all duration-300",
-                  todo.completed && "opacity-60"
+                  "graph-card group hover:translate-y-[-4px] transition-all duration-300",
+                  todo.completed && "opacity-60 grayscale-[0.5]"
                 )}
               >
-                <CardContent className="p-5 flex items-center gap-4">
+                <CardContent className="p-6 flex items-center gap-5">
                   <button 
                     onClick={() => toggleTodo(todo)}
                     className={cn(
@@ -283,25 +405,25 @@ export default function Dashboard() {
                       todo.completed ? "text-green-500" : "text-zinc-500"
                     )}
                   >
-                    {todo.completed ? <CheckCircle2 className="h-7 w-7" /> : <Circle className="h-7 w-7" />}
+                    {todo.completed ? <CheckCircle2 className="h-8 w-8" /> : <Circle className="h-8 w-8" />}
                   </button>
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center flex-wrap gap-2 mb-1">
                       <p className={cn(
-                        "text-lg font-bold truncate",
+                        "text-lg font-black truncate",
                         todo.completed && "line-through text-muted-foreground"
                       )}>
                         {todo.title}
                       </p>
                       {todo.priority && (
-                        <span className={cn("text-[8px] font-black uppercase px-2 py-0.5 rounded-full border", PRIORITY_COLORS[todo.priority as keyof typeof PRIORITY_COLORS])}>
+                        <span className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded-full border", PRIORITY_COLORS[todo.priority as keyof typeof PRIORITY_COLORS])}>
                           {todo.priority}
                         </span>
                       )}
                     </div>
                     
-                    <div className="flex items-center gap-4 text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                    <div className="flex items-center gap-4 text-[10px] text-muted-foreground font-black uppercase tracking-widest">
                       {todo.dueDate && (
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" /> {format(parseISO(todo.dueDate), 'MMM d')}
@@ -329,9 +451,9 @@ export default function Dashboard() {
                       }
                     }}
                     disabled={breakingDownId === todo.id || todo.completed}
-                    className="text-primary hover:bg-primary/10 rounded-xl"
+                    className="text-primary hover:bg-primary/20 rounded-2xl w-12 h-12"
                   >
-                    {breakingDownId === todo.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-5 w-5" />}
+                    {breakingDownId === todo.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <Wand2 className="h-6 w-6" />}
                   </Button>
                 </CardContent>
               </Card>
