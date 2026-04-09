@@ -4,20 +4,16 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { 
-  collection, 
   doc, 
-  serverTimestamp,
-  orderBy,
-  query
+  serverTimestamp
 } from "firebase/firestore";
 import { 
   useAuth, 
   useFirestore, 
   useUser, 
-  useCollection, 
-  useMemoFirebase,
   updateDocumentNonBlocking
 } from "@/firebase";
+import { useTodos } from "@/hooks/use-todos";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -59,20 +55,6 @@ import { aiTaskBreakdown } from "@/ai/flows/ai-task-breakdown";
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday, parseISO } from "date-fns";
 
-interface Todo {
-  id: string;
-  title: string;
-  completed: boolean;
-  createdAt: any;
-  userId: string;
-  subtasks?: string[];
-  isDaily?: boolean;
-  priority?: "low" | "medium" | "high";
-  dueDate?: string;
-  streakDays?: number;
-  lastCompletedDate?: any;
-}
-
 const PRIORITY_COLORS = {
   low: "bg-blue-100 text-blue-700 border-blue-200",
   medium: "bg-amber-100 text-amber-700 border-amber-200",
@@ -90,23 +72,15 @@ export default function Dashboard() {
   const auth = useAuth();
   const db = useFirestore();
   const { user, isUserLoading } = useUser();
-
-  const todosQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
-    return query(
-      collection(db, "users", user.uid, "todos"),
-      orderBy("createdAt", "desc")
-    );
-  }, [db, user]);
-
-  const { data: todos, isLoading: isTodosLoading, error: queryError } = useCollection<Todo>(todosQuery);
+  
+  const { todos, loading: isTodosLoading, error: queryError } = useTodos();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const stats = useMemo(() => {
-    if (!todos) return null;
+    if (!todos.length) return null;
     const completedCount = todos.filter(t => t.completed).length;
     const pendingCount = todos.length - completedCount;
     const dueTodayCount = todos.filter(t => t.dueDate && isToday(parseISO(t.dueDate))).length;
@@ -125,11 +99,11 @@ export default function Dashboard() {
     return { completedCount, pendingCount, dueTodayCount, maxStreak, chartData, streakHistory };
   }, [todos]);
 
-  const toggleTodo = (todo: Todo) => {
+  const toggleTodo = (todo: any) => {
     if (!db || !user) return;
     const docRef = doc(db, "users", user.uid, "todos", todo.id);
     
-    let updates: Partial<Todo> = { completed: !todo.completed };
+    let updates: any = { completed: !todo.completed };
 
     if (!todo.completed && todo.isDaily) {
       const lastDate = todo.lastCompletedDate?.toDate ? todo.lastCompletedDate.toDate() : null;
@@ -190,7 +164,7 @@ export default function Dashboard() {
         {queryError && (
           <Card className="border-destructive/50 bg-destructive/10">
             <CardContent className="p-4 text-destructive text-sm flex items-center gap-2">
-              🐻 Pawsitive vibes only! We hit a snag syncing your tasks. Please refresh.
+              🐻 We hit a snag syncing tasks. Please refresh.
             </CardContent>
           </Card>
         )}
@@ -272,7 +246,7 @@ export default function Dashboard() {
                     paddingAngle={5}
                     dataKey="value"
                   >
-                    {stats?.chartData.map((entry, index) => (
+                    {stats?.chartData?.map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -345,7 +319,7 @@ export default function Dashboard() {
                             {todo.title}
                           </p>
                           {todo.priority && (
-                            <Badge variant="outline" className={cn("text-[10px] h-5 uppercase px-2", PRIORITY_COLORS[todo.priority])}>
+                            <Badge variant="outline" className={cn("text-[10px] h-5 uppercase px-2", PRIORITY_COLORS[todo.priority as keyof typeof PRIORITY_COLORS])}>
                               {todo.priority}
                             </Badge>
                           )}

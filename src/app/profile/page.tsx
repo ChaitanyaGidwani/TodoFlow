@@ -3,14 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { collection, query, where, orderBy } from "firebase/firestore";
-import { 
-  useAuth, 
-  useUser, 
-  useFirestore, 
-  useCollection, 
-  useMemoFirebase 
-} from "@/firebase";
+import { useAuth, useUser } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { TeddyIcon } from "@/components/TeddyIcons";
 import { useTheme } from "@/components/ThemeProvider";
+import { useTodos } from "@/hooks/use-todos";
 import { 
   LogOut, 
   Sun, 
@@ -33,16 +27,6 @@ import {
 } from "lucide-react";
 import { format, isWithinInterval, parseISO, startOfDay, endOfDay } from "date-fns";
 
-interface Todo {
-  id: string;
-  title: string;
-  completed: boolean;
-  createdAt: any;
-  lastCompletedDate?: any;
-  streakDays?: number;
-  userId: string;
-}
-
 export default function ProfilePage() {
   const [mounted, setMounted] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -51,29 +35,22 @@ export default function ProfilePage() {
   
   const router = useRouter();
   const auth = useAuth();
-  const db = useFirestore();
   const { user, isUserLoading } = useUser();
   const { theme, toggleTheme } = useTheme();
+  
+  // Use the robust useTodos hook
+  const { todos, loading: isLoading, error } = useTodos();
 
   useEffect(() => { 
     setMounted(true); 
   }, []);
 
-  // Use the exact subcollection path: users/{userId}/todos
-  const historyQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
-    return query(
-      collection(db, "users", user.uid, "todos"),
-      where("completed", "==", true),
-      orderBy("createdAt", "desc")
-    );
-  }, [db, user]);
-
-  const { data: history, isLoading, error: queryError } = useCollection<Todo>(historyQuery);
+  const completedHistory = useMemo(() => {
+    return todos.filter(t => t.completed);
+  }, [todos]);
 
   const filteredHistory = useMemo(() => {
-    if (!history) return [];
-    return history.filter(item => {
+    return completedHistory.filter(item => {
       const title = item.title || "";
       const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase());
       
@@ -91,34 +68,23 @@ export default function ProfilePage() {
         return matchesSearch;
       }
     });
-  }, [history, searchTerm, startDate, endDate]);
+  }, [completedHistory, searchTerm, startDate, endDate]);
 
   const stats = useMemo(() => {
-    if (!history) return { total: 0, avgStreak: 0, maxStreak: 0 };
-    const total = history.length;
-    const totalStreak = history.reduce((acc, curr) => acc + (curr.streakDays || 0), 0);
-    const maxStreak = Math.max(...history.map(h => h.streakDays || 0), 0);
+    const total = completedHistory.length;
+    const totalStreak = completedHistory.reduce((acc, curr) => acc + (curr.streakDays || 0), 0);
+    const maxStreak = Math.max(...todos.map(h => h.streakDays || 0), 0);
     return {
       total,
       avgStreak: total > 0 ? (totalStreak / total).toFixed(1) : 0,
       maxStreak
     };
-  }, [history]);
-
-  useEffect(() => {
-    if (mounted && !isUserLoading && !user) {
-      router.push("/");
-    }
-  }, [mounted, isUserLoading, user, router]);
+  }, [completedHistory, todos]);
 
   const handleLogout = async () => {
     if (!auth) return;
-    try {
-      await signOut(auth);
-      router.push("/");
-    } catch (error) {
-      console.error("Logout failed", error);
-    }
+    await signOut(auth);
+    router.push("/");
   };
 
   const exportCSV = () => {
@@ -144,10 +110,7 @@ export default function ProfilePage() {
   if (!mounted || isUserLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-muted-foreground animate-pulse">Loading profile 🐻...</p>
-        </div>
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
   }
@@ -176,10 +139,10 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      {queryError && (
+      {error && (
         <Card className="border-destructive/50 bg-destructive/10">
           <CardContent className="p-4 text-destructive text-sm flex items-center gap-2">
-            🐻 Oops! There was an issue fetching your history. Our tech bears are on it.
+            🐻 Oops! Connection issue. Please refresh.
           </CardContent>
         </Card>
       )}
@@ -262,7 +225,7 @@ export default function ProfilePage() {
                   )}
                   {!isLoading && filteredHistory.length === 0 && (
                     <div className="text-center py-20 border border-dashed border-primary/20 rounded-3xl">
-                      <p className="text-muted-foreground italic">No history matches these filters 🐻</p>
+                      <p className="text-muted-foreground italic">No history yet 🐻</p>
                     </div>
                   )}
                   {filteredHistory.map((item) => (

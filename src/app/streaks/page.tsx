@@ -2,35 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { collection, orderBy, query } from "firebase/firestore";
-import { useFirestore, useUser, useCollection, useMemoFirebase } from "@/firebase";
+import { useUser } from "@/firebase";
+import { useTodos } from "@/hooks/use-todos";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TeddyIcon } from "@/components/TeddyIcons";
-import { Trophy, Zap, Calendar, Medal, Star, ShieldCheck } from "lucide-react";
+import { Trophy, Zap, Medal, Star, ShieldCheck, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Todo {
-  id: string;
-  title: string;
-  isDaily?: boolean;
-  streakDays?: number;
-}
 
 export default function StreaksPage() {
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
-  const db = useFirestore();
   const { user, isUserLoading } = useUser();
-
-  const todosQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
-    return query(collection(db, "users", user.uid, "todos"), orderBy("streakDays", "desc"));
-  }, [db, user]);
-
-  const { data: todos } = useCollection<Todo>(todosQuery);
+  const { todos, loading } = useTodos();
 
   useEffect(() => { setMounted(true); }, []);
+  
   if (!mounted || isUserLoading) return null;
   if (!user) { router.push("/"); return null; }
 
@@ -100,7 +87,8 @@ export default function StreaksPage() {
           <CardTitle>Daily Habits</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {dailyTodos.length === 0 && (
+          {loading && <p className="text-center py-10">Loading...</p>}
+          {!loading && dailyTodos.length === 0 && (
             <p className="text-center py-10 text-muted-foreground italic">No daily habits tracked yet.</p>
           )}
           {dailyTodos.map((todo) => (

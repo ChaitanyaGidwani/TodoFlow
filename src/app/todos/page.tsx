@@ -5,19 +5,16 @@ import { useRouter } from "next/navigation";
 import { 
   collection, 
   doc, 
-  serverTimestamp,
-  orderBy,
-  query
+  serverTimestamp
 } from "firebase/firestore";
 import { 
   useFirestore, 
   useUser, 
-  useCollection, 
-  useMemoFirebase,
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking
 } from "@/firebase";
+import { useTodos } from "@/hooks/use-todos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,7 +28,6 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, 
   Trash2, 
@@ -40,26 +36,12 @@ import {
   Circle,
   Wand2,
   Calendar,
-  Zap,
   Search
 } from "lucide-react";
 import { TeddyIcon } from "@/components/TeddyIcons";
 import { aiTaskBreakdown } from "@/ai/flows/ai-task-breakdown";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
-
-interface Todo {
-  id: string;
-  title: string;
-  completed: boolean;
-  createdAt: any;
-  userId: string;
-  subtasks?: string[];
-  isDaily?: boolean;
-  priority?: "low" | "medium" | "high";
-  dueDate?: string;
-  streakDays?: number;
-}
 
 const PRIORITY_COLORS = {
   low: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
@@ -79,20 +61,10 @@ export default function TodosPage() {
   const [breakingDownId, setBreakingDownId] = useState<string | null>(null);
   
   const router = useRouter();
-  const { toast } = useToast();
   const db = useFirestore();
   const { user, isUserLoading } = useUser();
-
-  const todosQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
-    // Strictly path-based subcollection query
-    return query(
-      collection(db, "users", user.uid, "todos"),
-      orderBy("createdAt", "desc")
-    );
-  }, [db, user]);
-
-  const { data: todos, isLoading } = useCollection<Todo>(todosQuery);
+  
+  const { todos, loading: isLoading } = useTodos();
 
   useEffect(() => {
     setMounted(true);
@@ -121,7 +93,7 @@ export default function TodosPage() {
     addDocumentNonBlocking(colRef, {
       title: newTodo,
       completed: false,
-      userId: user.uid, // Required for security rules
+      userId: user.uid,
       createdAt: serverTimestamp(),
       priority,
       isDaily,
@@ -134,7 +106,7 @@ export default function TodosPage() {
     setAdding(false);
   };
 
-  const toggleTodo = (todo: Todo) => {
+  const toggleTodo = (todo: any) => {
     if (!db || !user) return;
     const docRef = doc(db, "users", user.uid, "todos", todo.id);
     updateDocumentNonBlocking(docRef, { completed: !todo.completed });
@@ -267,7 +239,7 @@ export default function TodosPage() {
                       {todo.title}
                     </span>
                     {todo.priority && (
-                      <Badge variant="outline" className={cn("text-[10px] h-5 uppercase", PRIORITY_COLORS[todo.priority])}>
+                      <Badge variant="outline" className={cn("text-[10px] h-5 uppercase", PRIORITY_COLORS[todo.priority as keyof typeof PRIORITY_COLORS])}>
                         {todo.priority}
                       </Badge>
                     )}
