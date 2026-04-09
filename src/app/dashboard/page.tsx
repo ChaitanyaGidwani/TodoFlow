@@ -202,7 +202,7 @@ export default function Dashboard() {
             Flow State <TeddyIcon variant="paw" size={40} color={profile?.teddyColor} className="animate-teddy" />
           </h1>
           <p className="text-muted-foreground font-bold mt-2 uppercase tracking-widest text-xs flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary animate-pulse" /> Personalized productivity for {profile?.displayName || 'you'}
+            <Sparkles className="h-4 w-4 text-primary animate-pulse" /> Welcome back, {profile?.displayName || 'User'}!
           </p>
         </div>
         <div className="neon-badge px-6 py-2 flex items-center">

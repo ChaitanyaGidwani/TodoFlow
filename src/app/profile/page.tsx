@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { TeddyIcon, IconVariant } from "@/components/TeddyIcons";
 import { useTheme } from "@/components/ThemeProvider";
 import { useTodos } from "@/hooks/use-todos";
+import { Input } from "@/components/ui/input";
 import { 
   LogOut, 
   Sun, 
@@ -18,7 +19,8 @@ import {
   Palette,
   Layout,
   Crown,
-  MousePointer2
+  MousePointer2,
+  User
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,7 +34,9 @@ const PATTERNS = [
   { id: 'paws', label: 'Paws', icon: '🐾' },
   { id: 'dots', label: 'Dots', icon: '⦿' },
   { id: 'stripes', label: 'Stripes', icon: '//' },
-  { id: 'stars', label: 'Magic', icon: '⭐' }
+  { id: 'stars', label: 'Magic', icon: '⭐' },
+  { id: 'waves', label: 'Waves', icon: '⌇' },
+  { id: 'hexagons', label: 'Hex', icon: '⬢' }
 ];
 
 export default function ProfilePage() {
@@ -40,7 +44,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const { profile, updateProfile, loading: profileLoading } = useProfile();
   const { todos } = useTodos();
 
@@ -60,10 +64,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className={cn(
-      "min-h-[calc(100vh-8rem)] flex flex-col items-center gap-8 py-8 animate-in fade-in duration-700",
-      profile?.pattern && `pattern-${profile.pattern}`
-    )}>
+    <div className="min-h-[calc(100vh-8rem)] flex flex-col items-center gap-8 py-8 animate-in fade-in duration-700">
       <div className="w-full max-w-lg space-y-8">
         {/* Profile Card */}
         <div className="todo-card p-8 flex flex-col items-center gap-6 text-center border-white/20 dark:border-purple-500/30">
@@ -76,21 +77,35 @@ export default function ProfilePage() {
             </div>
           </div>
           
-          <div>
-            <h1 className="text-3xl font-black text-gradient">Hi, {profile?.displayName || 'Todoist'}! ✨</h1>
-            <p className="text-muted-foreground font-bold text-xs mt-1 uppercase tracking-widest flex items-center justify-center gap-2">
-              <Sparkles className="h-3 w-3" /> Master of Flow
-            </p>
+          <div className="w-full space-y-4">
+            <div>
+              <h1 className="text-3xl font-black text-gradient">Hi, {profile?.displayName || 'Todoist'}! ✨</h1>
+              <p className="text-muted-foreground font-bold text-xs mt-1 uppercase tracking-widest flex items-center justify-center gap-2">
+                <Sparkles className="h-3 w-3" /> Master of Flow
+              </p>
+            </div>
+            
+            <div className="space-y-2 text-left">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 px-1">
+                <User className="h-3 w-3" /> Your Display Name
+              </label>
+              <Input 
+                value={profile?.displayName || ''} 
+                onChange={(e) => updateProfile({ displayName: e.target.value })}
+                placeholder="How should we call you?"
+                className="bg-white/10 border-white/10 h-12 rounded-2xl font-bold text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 w-full">
             <div className="bg-white/5 dark:bg-black/20 rounded-2xl p-4 border border-white/10 dark:border-purple-500/10">
               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Achievements</p>
-              <p className="text-2xl font-black text-white">{stats.total}</p>
+              <p className="text-2xl font-black text-foreground">{stats.total}</p>
             </div>
             <div className="bg-white/5 dark:bg-black/20 rounded-2xl p-4 border border-white/10 dark:border-purple-500/10">
               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Best Streak</p>
-              <p className="text-2xl font-black text-white">{stats.streak}d</p>
+              <p className="text-2xl font-black text-foreground">{stats.streak}d</p>
             </div>
           </div>
         </div>
@@ -130,7 +145,7 @@ export default function ProfilePage() {
                   className="w-16 h-16 rounded-3xl border-4 border-white dark:border-purple-900/50 shadow-xl cursor-pointer bg-transparent overflow-hidden transition-transform hover:scale-110"
                 />
                 <div className="space-y-1">
-                  <p className="text-xs font-bold text-white">Pick your vibe</p>
+                  <p className="text-xs font-bold text-foreground">Pick your vibe</p>
                   <p className="text-[10px] text-muted-foreground">Syncs globally!</p>
                 </div>
               </div>
@@ -146,7 +161,7 @@ export default function ProfilePage() {
                     className={cn(
                       "py-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-tight transition-all duration-300 flex items-center justify-center gap-2",
                       profile?.pattern === p.id 
-                        ? "border-primary bg-primary/20 text-white" 
+                        ? "border-primary bg-primary/20 text-foreground" 
                         : "border-white/5 bg-white/5 text-muted-foreground hover:bg-white/10 dark:hover:bg-purple-500/10"
                     )}
                   >
