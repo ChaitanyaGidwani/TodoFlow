@@ -22,9 +22,6 @@ import {
   CheckCircle2, 
   Circle,
   Wand2,
-  Trophy,
-  Zap,
-  Calendar,
   TrendingUp,
   PieChart as PieChartIcon,
   BarChart3,
@@ -32,7 +29,8 @@ import {
   Loader2,
   Flame,
   Star,
-  Sparkles
+  Sparkles,
+  Calendar
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -193,15 +191,20 @@ export default function Dashboard() {
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-20">
       <header className="flex flex-col md:flex-row items-center justify-between gap-6">
-        <div>
-          <h1 className="text-5xl md:text-6xl font-black text-high-contrast flex items-center gap-6">
-            Flow State <div className="p-4 bg-primary/20 rounded-[2.5rem] border-2 border-primary/30 shadow-xl"><TeddyIcon variant="paw" size={56} color={profile?.teddyColor} className="animate-teddy" /></div>
+        <div className="flex-1 w-full">
+          <h1 className="text-5xl md:text-7xl font-black bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 bg-clip-text text-transparent mb-6 leading-tight">
+            Welcome to <span className="text-6xl">TodoFlow</span> 🐻✨
           </h1>
-          <p className="text-muted-foreground font-black mt-4 uppercase tracking-[0.25em] text-xs flex items-center gap-3">
-            <div className="p-1.5 bg-primary/10 rounded-lg"><Sparkles className="h-4 w-4 text-primary animate-pulse" /></div> Welcome back, {profile?.displayName || 'User'}!
-          </p>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
+            <div className="p-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-xl border border-purple-200/50 backdrop-blur-sm">
+              <Sparkles className="h-5 w-5 text-purple-600 animate-pulse drop-shadow-lg" />
+            </div>
+            <div className="font-black uppercase tracking-[0.25em] text-xs bg-gradient-to-r from-gray-700 to-gray-600 bg-clip-text text-transparent dark:from-gray-300 dark:to-gray-400">
+              Welcome back, {profile?.displayName || 'Superstar'}!
+            </div>
+          </div>
         </div>
-        <div className="neon-badge px-8 py-4 flex items-center shadow-2xl rounded-[2rem] border-2 border-white/20">
+        <div className="neon-badge px-8 py-4 flex items-center shadow-2xl rounded-[2rem] border-2 border-white/20 shrink-0">
           <Clock className="h-5 w-5 mr-3" /> {format(new Date(), 'EEEE, MMMM do')}
         </div>
       </header>
@@ -219,7 +222,7 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mb-3">{item.label}</p>
-                      <p className="text-6xl font-black text-high-contrast"><AnimatedNumber value={item.value} /></p>
+                      <div className="text-6xl font-black text-high-contrast"><AnimatedNumber value={item.value} /></div>
                     </div>
                   </CardContent>
                 </Card>
@@ -239,7 +242,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-2">{item.label}</p>
-                <p className="text-5xl font-black text-high-contrast"><AnimatedNumber value={item.value} /></p>
+                <div className="text-5xl font-black text-high-contrast"><AnimatedNumber value={item.value} /></div>
               </div>
             </CardContent>
           </Card>
@@ -381,7 +384,7 @@ export default function Dashboard() {
                 <div className="bg-primary/5 p-10 rounded-full w-fit mx-auto mb-8 animate-teddy">
                   <TeddyIcon variant="todos" size={84} className="opacity-30" />
                 </div>
-                <p className="text-muted-foreground font-black text-xl">All clear! Relax and enjoy. 🐻☕</p>
+                <div className="text-muted-foreground font-black text-xl">All clear! Relax and enjoy. 🐻☕</div>
               </div>
             )}
             {filteredTodos?.map((todo) => (
@@ -405,12 +408,12 @@ export default function Dashboard() {
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center flex-wrap gap-3 mb-3">
-                      <p className={cn(
+                      <div className={cn(
                         "text-2xl font-black truncate text-high-contrast",
                         todo.completed && "line-through opacity-50"
                       )}>
                         {todo.title}
-                      </p>
+                      </div>
                     </div>
                     
                     <div className="flex items-center gap-6 text-[12px] text-muted-foreground font-black uppercase tracking-widest">
