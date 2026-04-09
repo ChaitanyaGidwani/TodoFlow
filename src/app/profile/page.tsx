@@ -1,12 +1,14 @@
+
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { useAuth, useUser } from "@/firebase";
+import { useAuth, useUser, useFirestore } from "@/firebase";
+import { useProfile, UserProfile } from "@/hooks/use-profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { TeddyIcon } from "@/components/TeddyIcons";
@@ -16,153 +18,123 @@ import {
   LogOut, 
   Sun, 
   Moon, 
-  History,
   Palette,
   Download,
   Search,
   Trophy,
-  ArrowRight,
   Loader2,
-  Calendar as CalendarIcon
+  Camera,
+  Check,
+  Layout
 } from "lucide-react";
-import { format, isWithinInterval, parseISO, startOfDay, endOfDay } from "date-fns";
+import { format } from "date-fns";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getStorage } from "firebase/storage";
+
+const TEDDY_VARIANTS = [
+  'dashboard', 'todos', 'calendar', 'streaks', 'profile', 
+  'flame', 'star', 'moon', 'paw', 'gradient'
+];
+
+const PATTERNS = [
+  { id: 'none', label: 'Solid' },
+  { id: 'paws', label: 'Paw Prints' },
+  { id: 'dots', label: 'Polka Dots' },
+  { id: 'stripes', label: 'Stripes' }
+];
 
 export default function ProfilePage() {
   const [mounted, setMounted] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   
   const router = useRouter();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const { theme, toggleTheme } = useTheme();
-  
-  // Use the robust useTodos hook
-  const { todos, loading: isLoading, error } = useTodos();
+  const { profile, updateProfile, loading: profileLoading } = useProfile();
+  const { todos } = useTodos();
 
-  useEffect(() => { 
-    setMounted(true); 
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
-  const completedHistory = useMemo(() => {
-    return todos.filter(t => t.completed);
-  }, [todos]);
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
 
-  const filteredHistory = useMemo(() => {
-    return completedHistory.filter(item => {
-      const title = item.title || "";
-      const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      if (!startDate && !endDate) return matchesSearch;
-      
-      const itemDate = item.lastCompletedDate?.toDate 
-        ? item.lastCompletedDate.toDate() 
-        : (item.createdAt?.toDate ? item.createdAt.toDate() : new Date());
-        
-      try {
-        const start = startDate ? startOfDay(parseISO(startDate)) : new Date(0);
-        const end = endDate ? endOfDay(parseISO(endDate)) : new Date();
-        return matchesSearch && isWithinInterval(itemDate, { start, end });
-      } catch (e) {
-        return matchesSearch;
-      }
-    });
-  }, [completedHistory, searchTerm, startDate, endDate]);
-
-  const stats = useMemo(() => {
-    const total = completedHistory.length;
-    const totalStreak = completedHistory.reduce((acc, curr) => acc + (curr.streakDays || 0), 0);
-    const maxStreak = Math.max(...todos.map(h => h.streakDays || 0), 0);
-    return {
-      total,
-      avgStreak: total > 0 ? (totalStreak / total).toFixed(1) : 0,
-      maxStreak
-    };
-  }, [completedHistory, todos]);
-
-  const handleLogout = async () => {
-    if (!auth) return;
-    await signOut(auth);
-    router.push("/");
+    setIsUploading(true);
+    try {
+      const storage = getStorage();
+      const storageRef = ref(storage, `users/${user.uid}/avatar/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      await updateProfile({ avatarUrl: url });
+    } catch (err) {
+      console.error("Upload failed", err);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
-  const exportCSV = () => {
-    if (!filteredHistory.length) return;
-    const headers = ["Task", "Date Completed", "Streak Earned"];
-    const rows = filteredHistory.map(item => [
-      `"${item.title}"`,
-      format(item.lastCompletedDate?.toDate ? item.lastCompletedDate.toDate() : new Date(), "yyyy-MM-dd"),
-      item.streakDays || 0
-    ]);
-    
-    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `todoflow_log.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const stats = {
+    total: todos.filter(t => t.completed).length,
+    active: todos.filter(t => !t.completed).length,
+    avgStreak: todos.length > 0 ? (todos.reduce((acc, curr) => acc + (curr.streakDays || 0), 0) / todos.length).toFixed(1) : 0
   };
 
-  if (!mounted || isUserLoading) {
+  if (!mounted || isUserLoading || profileLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (!user) return null;
-
   return (
-    <div className="max-w-5xl mx-auto p-4 sm:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <header className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-primary/10 rounded-2xl">
-            <TeddyIcon variant="profile" size={36} />
+    <div className={cn("max-w-5xl mx-auto p-4 sm:p-8 space-y-8 animate-in fade-in duration-700", profile?.pattern && `pattern-${profile.pattern}`)}>
+      <header className="flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="flex items-center gap-6">
+          <div className="relative group">
+            <div className="h-24 w-24 rounded-3xl overflow-hidden border-4 border-white/50 shadow-2xl">
+              {profile?.avatarUrl ? (
+                <img src={profile.avatarUrl} className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full bg-primary/10 flex items-center justify-center">
+                  <TeddyIcon size={48} variant="profile" color={profile?.teddyColor} />
+                </div>
+              )}
+            </div>
+            <label className="absolute -bottom-2 -right-2 p-2 bg-white rounded-xl shadow-lg cursor-pointer hover:scale-110 transition-transform">
+              {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4 text-primary" />}
+              <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} />
+            </label>
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Hi, {user.email?.split('@')[0]} 🐻</h1>
-            <p className="text-muted-foreground text-sm">Your productivity archive.</p>
+            <h1 className="text-4xl font-black tracking-tight">Hi, {profile?.displayName || 'Bear'}! ✨</h1>
+            <p className="text-muted-foreground font-medium">Customize your perfect productivity space.</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportCSV} className="rounded-xl gap-2 h-10">
-            <Download className="h-4 w-4" /> Export CSV
-          </Button>
-          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-destructive hover:bg-destructive/10 h-10 w-10">
-            <LogOut className="h-5 w-5" />
+          <Button variant="ghost" size="icon" onClick={async () => { await signOut(auth!); router.push("/"); }} className="text-destructive h-12 w-12 rounded-2xl bg-white/50 border border-white/20">
+            <LogOut className="h-6 w-6" />
           </Button>
         </div>
       </header>
 
-      {error && (
-        <Card className="border-destructive/50 bg-destructive/10">
-          <CardContent className="p-4 text-destructive text-sm flex items-center gap-2">
-            🐻 Oops! Connection issue. Please refresh.
-          </CardContent>
-        </Card>
-      )}
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="space-y-6">
-          <Card className="todo-card border-none bg-gradient-to-br from-primary/10 to-secondary/10">
-            <CardHeader className="pb-2">
+          <Card className="todo-card border-none">
+            <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-amber-500" /> Bear Stats
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-white/40 dark:bg-black/20 rounded-xl text-center">
-                <p className="text-2xl font-bold text-primary">{stats.total}</p>
-                <p className="text-[10px] uppercase font-bold text-muted-foreground">Total Done</p>
+            <CardContent className="grid grid-cols-1 gap-4">
+              <div className="flex items-center justify-between p-4 bg-primary/5 rounded-2xl">
+                <span className="text-sm font-bold text-muted-foreground uppercase">Total Done</span>
+                <span className="text-2xl font-black text-primary">{stats.total}</span>
               </div>
-              <div className="p-3 bg-white/40 dark:bg-black/20 rounded-xl text-center">
-                <p className="text-2xl font-bold text-secondary">{stats.avgStreak}</p>
-                <p className="text-[10px] uppercase font-bold text-muted-foreground">Avg Streak</p>
+              <div className="flex items-center justify-between p-4 bg-secondary/5 rounded-2xl">
+                <span className="text-sm font-bold text-muted-foreground uppercase">Avg Streak</span>
+                <span className="text-2xl font-black text-secondary">{stats.avgStreak}</span>
               </div>
             </CardContent>
           </Card>
@@ -170,90 +142,88 @@ export default function ProfilePage() {
           <Card className="todo-card border-none">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Palette className="h-5 w-5 text-primary" /> Display
+                <Palette className="h-5 w-5 text-primary" /> Teddy Color
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex items-center justify-between">
-              <span className="font-medium text-sm">Theme Mode</span>
-              <Button variant="outline" size="icon" onClick={toggleTheme} className="rounded-xl h-10 w-10">
-                {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              </Button>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <input 
+                  type="color" 
+                  value={profile?.teddyColor || '#8b5cf6'} 
+                  onChange={(e) => updateProfile({ teddyColor: e.target.value })}
+                  className="h-12 w-full rounded-xl border-none cursor-pointer"
+                />
+                <Button variant="outline" className="rounded-xl h-12" onClick={() => updateProfile({ teddyColor: '#8b5cf6' })}>Reset</Button>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="lg:col-span-2 space-y-4">
-          <Card className="todo-card border-none shadow-xl">
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="todo-card border-none">
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2">
-                <History className="h-6 w-6 text-primary" /> Completion History
+                <Palette className="h-6 w-6 text-primary" /> Customization Panel
               </CardTitle>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Search past tasks..." 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 bg-muted/30 border-none h-10"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Input 
-                    type="date" 
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="bg-muted/30 border-none text-xs h-10"
-                  />
-                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <Input 
-                    type="date" 
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="bg-muted/30 border-none text-xs h-10"
-                  />
-                </div>
-              </div>
             </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[500px] pr-4">
-                <div className="space-y-3">
-                  {isLoading && (
-                    <div className="flex justify-center py-20">
-                      <Loader2 className="h-10 w-10 animate-spin text-primary/50" />
-                    </div>
-                  )}
-                  {!isLoading && filteredHistory.length === 0 && (
-                    <div className="text-center py-20 border border-dashed border-primary/20 rounded-3xl">
-                      <p className="text-muted-foreground italic">No history yet 🐻</p>
-                    </div>
-                  )}
-                  {filteredHistory.map((item) => (
-                    <div 
-                      key={item.id} 
-                      className="p-4 rounded-2xl bg-white/20 dark:bg-black/20 border border-white/20 flex items-center justify-between group hover:bg-white/40 transition-colors"
+            <CardContent className="space-y-8">
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <Loader2 className="h-4 w-4" /> Teddy Gallery
+                </h3>
+                <div className="grid grid-cols-5 gap-3">
+                  {TEDDY_VARIANTS.map(v => (
+                    <button
+                      key={v}
+                      onClick={() => updateProfile({ teddyVariant: v })}
+                      className={cn(
+                        "p-4 rounded-2xl border-2 transition-all hover:scale-105 flex items-center justify-center",
+                        profile?.teddyVariant === v ? "border-primary bg-primary/10" : "border-white/20 bg-white/30"
+                      )}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600">
-                          <History className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm">{item.title}</p>
-                          <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                            <CalendarIcon className="h-3 w-3" />
-                            {item.lastCompletedDate?.toDate 
-                              ? format(item.lastCompletedDate.toDate(), "PPP") 
-                              : (item.createdAt?.toDate ? format(item.createdAt.toDate(), "PPP") : "Recent")}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[10px]">
-                        Streak +{item.streakDays || 0}
-                      </Badge>
-                    </div>
+                      <TeddyIcon variant={v as any} size={28} color={profile?.teddyColor} />
+                    </button>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <Layout className="h-4 w-4" /> Background Pattern
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {PATTERNS.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => updateProfile({ pattern: p.id as any })}
+                      className={cn(
+                        "p-4 rounded-2xl border-2 transition-all text-sm font-bold",
+                        profile?.pattern === p.id ? "border-primary bg-primary/10" : "border-white/20 bg-white/30"
+                      )}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-4 flex items-center justify-between border-t border-white/10">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-card rounded-2xl shadow-lg">
+                    <TeddyIcon variant={profile?.teddyVariant as any} size={32} color={profile?.teddyColor} />
+                  </div>
+                  <div>
+                    <p className="font-bold">App-wide Sync</p>
+                    <p className="text-xs text-muted-foreground">Changes apply to all navigation markers.</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold">Theme</span>
+                  <Button variant="outline" size="icon" onClick={toggleTheme} className="rounded-2xl h-10 w-10">
+                    {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

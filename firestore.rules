@@ -1,16 +1,15 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Basic authenticated access to all documents
-    // This ensures no permission errors while you are logged in
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
-    
-    // Explicit user silo ownership
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+      
       match /todos/{todoId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      match /profile/settings {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }

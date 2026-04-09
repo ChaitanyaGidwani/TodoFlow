@@ -1,79 +1,51 @@
+
 {
   "entities": {
     "Todo": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Todo",
       "type": "object",
       "description": "Represents a single to-do item managed by a user.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Todo entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who owns this to-do item."
-        },
-        "title": {
-          "type": "string",
-          "description": "The main text of the to-do item."
-        },
-        "completed": {
-          "type": "boolean",
-          "description": "Indicates whether the to-do item has been marked as complete."
-        },
-        "isDaily": {
-          "type": "boolean",
-          "description": "Whether this is a recurring daily task."
-        },
-        "priority": {
-          "type": "string",
-          "enum": ["low", "medium", "high"],
-          "description": "The importance level of the task."
-        },
-        "dueDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "When the task is due."
-        },
-        "streakDays": {
-          "type": "number",
-          "description": "Consecutive days this daily task was completed."
-        },
-        "lastCompletedDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp of the last completion for streak calculation."
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "isDaily": { "type": "boolean" },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "streakDays": { "type": "number" },
+        "lastCompletedDate": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "userId",
-        "title",
-        "completed",
-        "createdAt"
-      ]
+      "required": ["id", "userId", "title", "completed", "createdAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "type": "object",
+      "description": "User personalization settings.",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "teddyVariant": { "type": "string" },
+        "teddyColor": { "type": "string" },
+        "pattern": { "type": "string", "enum": ["none", "paws", "dots", "stripes"] },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
-    "providers": [
-      "password"
-    ]
+    "providers": ["password"]
   },
   "firestore": {
     "/users/{userId}/todos/{todoId}": {
-      "schema": {
-        "$ref": "#/backend/entities/Todo"
-      },
-      "description": "Stores individual to-do items owned by a specific user."
+      "schema": { "$ref": "#/backend/entities/Todo" },
+      "description": "User todos."
+    },
+    "/users/{userId}/profile/settings": {
+      "schema": { "$ref": "#/backend/entities/UserProfile" },
+      "description": "User profile settings."
     }
   }
 }
