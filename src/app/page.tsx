@@ -6,7 +6,7 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth, useUser, useFirestore } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,10 +46,18 @@ export default function LandingPage() {
     try {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
+        // Ensure user document exists even if they were created before rules were strict
+        const userRef = doc(db, "users", auth.currentUser!.uid);
+        const userDoc = await getDoc(userRef);
+        if (!userDoc.exists()) {
+          await setDoc(userRef, {
+            email: auth.currentUser!.email,
+            updatedAt: serverTimestamp(),
+            userId: auth.currentUser!.uid
+          }, { merge: true });
+        }
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        // Explicitly initialize the user document to ensure security rules and data integrity.
-        // We use serverTimestamp for consistency.
         await setDoc(doc(db, "users", userCredential.user.uid), {
           email: userCredential.user.email,
           createdAt: serverTimestamp(),
@@ -117,6 +125,7 @@ export default function LandingPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
+                suppressHydrationWarning
               />
             </div>
             <div className="space-y-2">
@@ -128,6 +137,7 @@ export default function LandingPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete={isLogin ? "current-password" : "new-password"}
+                suppressHydrationWarning
               />
             </div>
           </CardContent>
