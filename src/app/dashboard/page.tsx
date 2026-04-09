@@ -30,7 +30,10 @@ import {
   Flame,
   Star,
   Sparkles,
-  Calendar
+  Calendar,
+  Zap,
+  User,
+  Settings
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -182,30 +185,25 @@ export default function Dashboard() {
   }
 
   const statItems = [
-    { label: "Top Streak", value: stats?.maxStreak || 0, icon: Flame, color: "text-purple-600 dark:text-purple-400" },
-    { label: "Done Tasks", value: stats?.completedCount || 0, icon: CheckCircle2, color: "text-green-600 dark:text-green-400" },
-    { label: "Due Today", value: stats?.dueTodayCount || 0, icon: Calendar, color: "text-blue-600 dark:text-blue-400" },
-    { label: "Total Goals", value: todos?.length || 0, icon: Star, color: "text-amber-600 dark:text-amber-400" }
+    { label: "Streak", value: stats?.maxStreak || 0, icon: Flame, color: "text-orange-500" },
+    { label: "Completed", value: stats?.completedCount || 0, icon: CheckCircle2, color: "text-emerald-500" },
+    { label: "Today", value: stats?.dueTodayCount || 0, icon: Calendar, color: "text-blue-500" },
+    { label: "Badges", value: Math.floor((stats?.completedCount || 0) / 10), icon: Star, color: "text-yellow-500" }
   ];
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-20">
-      <header className="flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex-1 w-full">
-          <h1 className="text-5xl md:text-7xl font-black bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 bg-clip-text text-transparent mb-6 leading-tight">
-            Welcome to <span className="text-6xl">TodoFlow</span> 🐻✨
-          </h1>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
-            <div className="p-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-xl border border-purple-200/50 backdrop-blur-sm">
-              <Sparkles className="h-5 w-5 text-purple-600 animate-pulse drop-shadow-lg" />
-            </div>
-            <div className="font-black uppercase tracking-[0.25em] text-xs bg-gradient-to-r from-gray-700 to-gray-600 bg-clip-text text-transparent dark:from-gray-300 dark:to-gray-400">
-              Welcome back, {profile?.displayName || 'Superstar'}!
-            </div>
+      <header className="glass-card p-12 rounded-[2.5rem] text-center border-white/20 dark:border-purple-500/30">
+        <h1 className="text-6xl md:text-8xl font-black bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 bg-clip-text text-transparent leading-tight">
+          TodoFlow 🐻
+        </h1>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
+          <div className="p-3 bg-purple-500/10 rounded-2xl border border-purple-200/50 backdrop-blur-sm">
+            <Sparkles className="h-6 w-6 text-purple-600 animate-pulse" />
           </div>
-        </div>
-        <div className="neon-badge px-8 py-4 flex items-center shadow-2xl rounded-[2rem] border-2 border-white/20 shrink-0">
-          <Clock className="h-5 w-5 mr-3" /> {format(new Date(), 'EEEE, MMMM do')}
+          <div className="text-xl md:text-2xl font-black text-high-contrast tracking-tight">
+            Welcome back, {profile?.displayName || 'Navya'}! ✨
+          </div>
         </div>
       </header>
 
@@ -416,15 +414,15 @@ export default function Dashboard() {
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-6 text-[12px] text-muted-foreground font-black uppercase tracking-widest">
+                    <div className="flex items-center gap-4 text-[12px] text-muted-foreground font-black uppercase tracking-widest">
                       {todo.dueDate && (
                         <span className="flex items-center gap-2 bg-white/30 px-3 py-1.5 rounded-xl border border-white/20">
                           <Calendar className="h-4 w-4 text-blue-500" /> {format(parseISO(todo.dueDate), 'MMM d')}
                         </span>
                       )}
                       {todo.isDaily && (
-                        <span className="flex items-center gap-2 text-purple-600 dark:text-purple-400 bg-purple-500/10 px-3 py-1.5 rounded-xl border border-purple-500/20">
-                          <Zap className="h-4 w-4" /> {todo.streakDays || 0} Streak
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-500/10 text-purple-700 rounded-full text-xs font-bold border border-purple-200">
+                          <Zap className="h-3 w-3"/> {todo.streakDays || 0}d
                         </span>
                       )}
                     </div>
