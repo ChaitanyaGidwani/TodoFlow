@@ -4,7 +4,13 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { collection, query, where, orderBy } from "firebase/firestore";
-import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { 
+  useAuth, 
+  useUser, 
+  useFirestore, 
+  useCollection, 
+  useMemoFirebase 
+} from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +28,8 @@ import {
   Search,
   Trophy,
   ArrowRight,
-  Loader2
+  Loader2,
+  Calendar as CalendarIcon
 } from "lucide-react";
 import { format, isWithinInterval, parseISO, startOfDay, endOfDay } from "date-fns";
 
@@ -76,10 +83,13 @@ export default function ProfilePage() {
         ? item.lastCompletedDate.toDate() 
         : (item.createdAt?.toDate ? item.createdAt.toDate() : new Date());
         
-      const start = startDate ? startOfDay(parseISO(startDate)) : new Date(0);
-      const end = endDate ? endOfDay(parseISO(endDate)) : new Date();
-      
-      return matchesSearch && isWithinInterval(itemDate, { start, end });
+      try {
+        const start = startDate ? startOfDay(parseISO(startDate)) : new Date(0);
+        const end = endDate ? endOfDay(parseISO(endDate)) : new Date();
+        return matchesSearch && isWithinInterval(itemDate, { start, end });
+      } catch (e) {
+        return matchesSearch;
+      }
     });
   }, [history, searchTerm, startDate, endDate]);
 
@@ -95,10 +105,20 @@ export default function ProfilePage() {
     };
   }, [history]);
 
+  useEffect(() => {
+    if (mounted && !isUserLoading && !user) {
+      router.push("/");
+    }
+  }, [mounted, isUserLoading, user, router]);
+
   const handleLogout = async () => {
     if (!auth) return;
-    await signOut(auth);
-    router.push("/");
+    try {
+      await signOut(auth);
+      router.push("/");
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
   };
 
   const exportCSV = () => {
@@ -123,16 +143,16 @@ export default function ProfilePage() {
 
   if (!mounted || isUserLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-muted-foreground animate-pulse">Loading profile 🐻...</p>
+        </div>
       </div>
     );
   }
 
-  if (!user) { 
-    router.push("/"); 
-    return null; 
-  }
+  if (!user) return null;
 
   return (
     <div className="max-w-5xl mx-auto p-4 sm:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -147,10 +167,10 @@ export default function ProfilePage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportCSV} className="rounded-xl gap-2">
+          <Button variant="outline" size="sm" onClick={exportCSV} className="rounded-xl gap-2 h-10">
             <Download className="h-4 w-4" /> Export CSV
           </Button>
-          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-destructive hover:bg-destructive/10">
+          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-destructive hover:bg-destructive/10 h-10 w-10">
             <LogOut className="h-5 w-5" />
           </Button>
         </div>
@@ -191,8 +211,8 @@ export default function ProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="flex items-center justify-between">
-              <span className="font-medium text-sm">Dark Mode</span>
-              <Button variant="outline" size="icon" onClick={toggleTheme} className="rounded-xl">
+              <span className="font-medium text-sm">Theme Mode</span>
+              <Button variant="outline" size="icon" onClick={toggleTheme} className="rounded-xl h-10 w-10">
                 {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </Button>
             </CardContent>
@@ -212,8 +232,7 @@ export default function ProfilePage() {
                     placeholder="Search past tasks..." 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 bg-white/10 border-white/10"
-                    suppressHydrationWarning
+                    className="pl-9 bg-muted/30 border-none h-10"
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -221,16 +240,14 @@ export default function ProfilePage() {
                     type="date" 
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="bg-white/10 border-white/10 text-xs h-10"
-                    suppressHydrationWarning
+                    className="bg-muted/30 border-none text-xs h-10"
                   />
                   <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Input 
                     type="date" 
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="bg-white/10 border-white/10 text-xs h-10"
-                    suppressHydrationWarning
+                    className="bg-muted/30 border-none text-xs h-10"
                   />
                 </div>
               </div>
@@ -259,7 +276,8 @@ export default function ProfilePage() {
                         </div>
                         <div>
                           <p className="font-semibold text-sm">{item.title}</p>
-                          <p className="text-[10px] text-muted-foreground">
+                          <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            <CalendarIcon className="h-3 w-3" />
                             {item.lastCompletedDate?.toDate 
                               ? format(item.lastCompletedDate.toDate(), "PPP") 
                               : (item.createdAt?.toDate ? format(item.createdAt.toDate(), "PPP") : "Recent")}
