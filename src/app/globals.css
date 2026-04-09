@@ -6,7 +6,7 @@
   :root {
     --background: 240 10% 95%;
     --foreground: 240 10% 3.9%;
-    --card: 0 0% 100% / 0.1;
+    --card: 0 0% 100% / 0.4;
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
@@ -23,23 +23,27 @@
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
     --ring: 261 59% 44%;
-    --radius: 1.25rem;
+    --radius: 1.5rem;
     
-    --bg-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 50%, #b5acc6 100%);
+    --bg-gradient: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
+    --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 10% / 0.2;
+    --background: 240 10% 2%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 0% / 0.3;
     --card-foreground: 0 0% 98%;
     --primary: 263 70% 70%;
     --primary-foreground: 240 10% 3.9%;
     --secondary: 219 70% 60%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
+    --muted: 240 10% 10%;
+    --muted-foreground: 240 5% 70%;
+    --border: 240 10% 15%;
+    --input: 240 10% 15%;
     
-    --bg-gradient: linear-gradient(135deg, #0f0f23 0%, #2a1b3d 50%, #1a0f2e 100%);
+    --bg-gradient: linear-gradient(135deg, #09090b 0%, #111111 50%, #000000 100%);
+    --card-shadow: 0 0 30px rgba(168, 85, 247, 0.15);
   }
 }
 
@@ -48,17 +52,27 @@
     @apply border-border;
   }
   body {
-    @apply text-foreground antialiased min-h-screen transition-colors duration-300;
+    @apply text-foreground antialiased min-h-screen transition-colors duration-500;
     background: var(--bg-gradient) fixed;
   }
 }
 
 .glass-card {
-  @apply backdrop-blur-xl bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.1)];
+  @apply backdrop-blur-xl bg-white/20 dark:bg-black/40 border border-white/20 dark:border-purple-500/20 transition-all duration-300;
+  box-shadow: var(--card-shadow);
 }
 
-.glass-glow {
-  box-shadow: 0 25px 45px rgba(168, 85, 247, 0.2);
+.glass-card:hover {
+  @apply border-white/40 dark:border-purple-500/40;
+}
+
+.neon-badge {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-white shadow-lg;
+  background: linear-gradient(45deg, #a855f7, #ec4899);
+}
+
+.text-gradient {
+  @apply bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 bg-clip-text text-transparent;
 }
 
 .pattern-paws {
@@ -78,9 +92,24 @@
   background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z' fill='%23a855f7' fill-opacity='0.05'/%3E%3C/svg%3E");
 }
 
-.icon-gallery::-webkit-scrollbar {
-  height: 6px;
+.animate-teddy {
+  animation: teddy-float 3s ease-in-out infinite;
 }
-.icon-gallery::-webkit-scrollbar-thumb {
-  @apply bg-primary/20 rounded-full;
+
+@keyframes teddy-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.todo-card {
+  @apply glass-card rounded-[2rem] overflow-hidden;
+}
+
+/* Hide scrollbar for gallery */
+.icon-gallery::-webkit-scrollbar {
+  display: none;
+}
+.icon-gallery {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

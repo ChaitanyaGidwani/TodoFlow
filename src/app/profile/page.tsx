@@ -16,7 +16,8 @@ import {
   Loader2, 
   Sparkles,
   Palette,
-  Layout
+  Layout,
+  Crown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -59,101 +60,108 @@ export default function ProfilePage() {
 
   return (
     <div className={cn(
-      "min-h-screen p-4 sm:p-8 flex flex-col items-center gap-8 transition-all",
+      "min-h-[calc(100vh-8rem)] flex flex-col items-center gap-8 py-8 animate-in fade-in duration-700",
       profile?.pattern && `pattern-${profile.pattern}`
     )}>
-      <header className="w-full max-w-lg flex items-center justify-between glass-card p-4 rounded-3xl">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/20 rounded-2xl">
-            <TeddyIcon variant={profile?.teddyVariant as any || 'magic-panda'} size={32} color={profile?.teddyColor} />
+      <div className="w-full max-w-lg space-y-8">
+        {/* Profile Card */}
+        <div className="todo-card p-8 flex flex-col items-center gap-6 text-center">
+          <div className="relative group">
+            <div className="p-8 bg-white/5 rounded-full border-4 border-purple-500/30 shadow-[0_0_50px_rgba(168,85,247,0.3)] group-hover:scale-105 transition-transform">
+              <TeddyIcon variant={profile?.teddyVariant as any || 'magic-panda'} size={100} color={profile?.teddyColor} />
+            </div>
+            <div className="absolute -top-4 -right-4 neon-badge">
+              <Crown className="h-4 w-4 mr-2" /> Level {Math.floor(stats.total / 10) + 1}
+            </div>
           </div>
+          
           <div>
-            <h1 className="text-xl font-black text-primary">Hi, {profile?.displayName || 'Bear'}! ✨</h1>
-            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Level: Pro Bear</p>
+            <h1 className="text-3xl font-black text-gradient">Hi, {profile?.displayName || 'Todoist'}! ✨</h1>
+            <p className="text-muted-foreground font-bold text-sm mt-1 uppercase tracking-widest">Productivity Master</p>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-xl hover:bg-white/20">
-            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => signOut(auth!)} className="text-destructive rounded-xl hover:bg-destructive/10">
-            <LogOut className="h-5 w-5" />
-          </Button>
-        </div>
-      </header>
 
-      <div className="w-full max-w-lg space-y-6">
-        {/* Avatar Gallery */}
-        <div className="glass-card p-6 rounded-[2.5rem] glass-glow">
-          <h3 className="text-sm font-black uppercase tracking-widest text-primary mb-4 flex items-center gap-2">
-            <Sparkles className="h-4 w-4" /> Avatar Gallery
-          </h3>
-          <div className="icon-gallery flex overflow-x-auto pb-4 gap-4 snap-x">
-            {ICON_GALLERY.map(v => (
-              <button
-                key={v}
-                onClick={() => updateProfile({ teddyVariant: v })}
-                className={cn(
-                  "shrink-0 p-4 rounded-2xl border-2 transition-all snap-center",
-                  profile?.teddyVariant === v ? "border-primary bg-primary/20 scale-110" : "border-white/10 hover:bg-white/10"
-                )}
-              >
-                <TeddyIcon variant={v} size={40} color={profile?.teddyColor} />
-              </button>
-            ))}
+          <div className="grid grid-cols-2 gap-4 w-full">
+            <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Achievements</p>
+              <p className="text-2xl font-black">{stats.total}</p>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Best Streak</p>
+              <p className="text-2xl font-black">{stats.streak}d</p>
+            </div>
           </div>
         </div>
 
         {/* Customization Panel */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="glass-card p-6 rounded-[2rem] flex flex-col items-center justify-center gap-4">
-            <div className="p-6 bg-white/10 rounded-full border-2 border-primary/20 shadow-xl">
-              <TeddyIcon variant={profile?.teddyVariant as any || 'magic-panda'} size={80} color={profile?.teddyColor} />
+        <div className="todo-card p-8 space-y-8">
+          <div>
+            <h3 className="text-xs font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
+              <Sparkles className="h-4 w-4" /> Avatar Gallery
+            </h3>
+            <div className="icon-gallery flex overflow-x-auto pb-4 gap-4 snap-x">
+              {ICON_GALLERY.map(v => (
+                <button
+                  key={v}
+                  onClick={() => updateProfile({ teddyVariant: v })}
+                  className={cn(
+                    "shrink-0 p-5 rounded-3xl border-2 transition-all snap-center",
+                    profile?.teddyVariant === v 
+                      ? "border-primary bg-primary/20 scale-110 shadow-lg shadow-primary/20" 
+                      : "border-white/5 bg-white/5 hover:bg-white/10"
+                  )}
+                >
+                  <TeddyIcon variant={v} size={48} color={profile?.teddyColor} />
+                </button>
+              ))}
             </div>
-            <div className="flex flex-col items-center">
-               <label className="text-[10px] font-black uppercase text-muted-foreground mb-2">Signature Color</label>
-               <div className="relative group">
-                 <input 
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-widest text-primary">Signature Color</h3>
+              <div className="flex items-center gap-4">
+                <input 
                   type="color" 
                   value={profile?.teddyColor || '#a855f7'} 
                   onChange={(e) => updateProfile({ teddyColor: e.target.value })}
-                  className="w-12 h-12 rounded-full border-4 border-white shadow-lg cursor-pointer bg-transparent overflow-hidden"
+                  className="w-16 h-16 rounded-3xl border-4 border-white dark:border-zinc-800 shadow-xl cursor-pointer bg-transparent overflow-hidden"
                 />
-               </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-bold">Pick your vibe</p>
+                  <p className="text-[10px] text-muted-foreground">This color will sync everywhere!</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-widest text-primary">Background Pattern</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {PATTERNS.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => updateProfile({ pattern: p.id as any })}
+                    className={cn(
+                      "py-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-tight transition-all",
+                      profile?.pattern === p.id 
+                        ? "border-primary bg-primary/20" 
+                        : "border-white/5 bg-white/5 hover:bg-white/10"
+                    )}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="glass-card p-6 rounded-[2rem] space-y-4">
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-primary text-center">Stats</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-                <span className="text-xs font-bold text-muted-foreground">Done</span>
-                <span className="text-xs font-black">{stats.total}</span>
-              </div>
-              <div className="flex justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-                <span className="text-xs font-bold text-muted-foreground">Best Streak</span>
-                <span className="text-xs font-black">{stats.streak}d</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Patterns */}
-        <div className="glass-card p-6 rounded-[2rem]">
-          <h3 className="text-xs font-black uppercase tracking-widest text-primary mb-4 text-center">Background Patterns</h3>
-          <div className="grid grid-cols-3 gap-3">
-            {PATTERNS.map(p => (
-              <button
-                key={p.id}
-                onClick={() => updateProfile({ pattern: p.id as any })}
-                className={cn(
-                  "py-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-tight transition-all",
-                  profile?.pattern === p.id ? "border-primary bg-primary/20" : "border-white/10 hover:bg-white/10"
-                )}
-              >
-                {p.label}
-              </button>
-            ))}
+          <div className="pt-8 border-t border-white/10">
+            <Button 
+              variant="destructive" 
+              className="w-full h-12 rounded-2xl font-black uppercase tracking-widest shadow-xl"
+              onClick={() => signOut(auth!)}
+            >
+              <LogOut className="h-5 w-5 mr-2" /> Logout Account
+            </Button>
           </div>
         </div>
       </div>

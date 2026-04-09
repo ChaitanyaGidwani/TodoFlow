@@ -37,7 +37,8 @@ import {
   Calendar,
   TrendingUp,
   PieChart as PieChartIcon,
-  BarChart3
+  BarChart3,
+  Clock
 } from "lucide-react";
 import { 
   LineChart, 
@@ -54,14 +55,16 @@ import {
 import { aiTaskBreakdown } from "@/ai/flows/ai-task-breakdown";
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday, parseISO } from "date-fns";
+import { TeddyIcon } from "@/components/TeddyIcons";
+import { useProfile } from "@/hooks/use-profile";
 
 const PRIORITY_COLORS = {
-  low: "bg-blue-100 text-blue-700 border-blue-200",
-  medium: "bg-amber-100 text-amber-700 border-amber-200",
-  high: "bg-rose-100 text-rose-700 border-rose-200",
+  low: "border-blue-500/50 text-blue-500",
+  medium: "border-amber-500/50 text-amber-500",
+  high: "border-rose-500/50 text-rose-500",
 };
 
-const COLORS = ["#5C2EB3", "#2666D9", "#fed6e3", "#a8edea"];
+const COLORS = ["#A855F7", "#3B82F6", "#EC4899", "#10B981"];
 
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
@@ -72,6 +75,7 @@ export default function Dashboard() {
   const auth = useAuth();
   const db = useFirestore();
   const { user, isUserLoading } = useUser();
+  const { profile } = useProfile();
   
   const { todos, loading: isTodosLoading, error: queryError } = useTodos();
 
@@ -131,12 +135,6 @@ export default function Dashboard() {
     return true;
   });
 
-  const handleLogout = async () => {
-    if (!auth) return;
-    await signOut(auth);
-    router.push("/");
-  };
-
   if (!mounted || isUserLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -146,224 +144,200 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen py-8 px-4 sm:px-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <header className="flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-700">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold text-primary font-headline">TodoFlow</h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium bg-white/50 backdrop-blur px-3 py-1.5 rounded-full border border-white/20">{user?.email}</span>
-            <Button variant="ghost" size="icon" onClick={handleLogout} className="text-destructive hover:bg-destructive/10">
-              <LogOut className="h-5 w-5" />
-            </Button>
-          </div>
-        </header>
-
-        {queryError && (
-          <Card className="border-destructive/50 bg-destructive/10">
-            <CardContent className="p-4 text-destructive text-sm flex items-center gap-2">
-              🐻 We hit a snag syncing tasks. Please refresh.
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="todo-card border-none shadow-md">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-primary/10 rounded-xl"><Zap className="text-primary h-6 w-6" /></div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Top Streak</p>
-                <p className="text-2xl font-bold">{stats?.maxStreak || 0} Days</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="todo-card border-none shadow-md">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-green-100 rounded-xl"><CheckCircle2 className="text-green-600 h-6 w-6" /></div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Completed</p>
-                <p className="text-2xl font-bold">{stats?.completedCount || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="todo-card border-none shadow-md">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-secondary/10 rounded-xl"><Calendar className="text-secondary h-6 w-6" /></div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Due Today</p>
-                <p className="text-2xl font-bold">{stats?.dueTodayCount || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="todo-card border-none shadow-md">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-amber-100 rounded-xl"><Trophy className="text-amber-600 h-6 w-6" /></div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Tasks</p>
-                <p className="text-2xl font-bold">{todos?.length || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
+    <div className="space-y-8 animate-in fade-in duration-700 pb-12">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-black text-foreground flex items-center gap-3">
+            Welcome back! <TeddyIcon variant="paw" size={32} color={profile?.teddyColor} className="animate-bounce" />
+          </h1>
+          <p className="text-muted-foreground font-medium">Here's how your day is shaping up. 🐻✨</p>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="todo-card border-none shadow-lg lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" /> Streak Trends
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="h-[250px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={stats?.streakHistory}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
-                  <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                  <Line type="monotone" dataKey="streak" stroke="#5C2EB3" strokeWidth={3} dot={{r: 4, fill: '#5C2EB3'}} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card className="todo-card border-none shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <PieChartIcon className="h-5 w-5 text-secondary" /> Flow Ratio
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="h-[250px] w-full flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={stats?.chartData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {stats?.chartData?.map((entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        <div className="neon-badge">
+          <Clock className="h-3 w-3 mr-2" /> {format(new Date(), 'EEEE, MMMM do')}
         </div>
+      </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" /> Active Tasks
-            </h2>
-            <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger className="w-[130px] h-9 bg-white/50 border-white/20">
-                <SelectValue placeholder="Filter" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="completed">Done</SelectItem>
-                <SelectItem value="daily">Daily</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Top Streak", value: `${stats?.maxStreak || 0} Days`, icon: Zap, color: "text-purple-500" },
+          { label: "Completed", value: stats?.completedCount || 0, icon: CheckCircle2, color: "text-green-500" },
+          { label: "Due Today", value: stats?.dueTodayCount || 0, icon: Calendar, color: "text-blue-500" },
+          { label: "Total Tasks", value: todos?.length || 0, icon: Trophy, color: "text-amber-500" }
+        ].map((item, idx) => (
+          <Card key={idx} className="todo-card group hover:scale-[1.02] transition-transform">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className={cn("p-3 bg-white/10 rounded-2xl group-hover:bg-white/20 transition-colors", item.color)}>
+                <item.icon className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{item.label}</p>
+                <p className="text-2xl font-black">{item.value}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-          <ScrollArea className="h-[600px] pr-4">
-            <div className="space-y-3">
-              {isTodosLoading && (
-                <div className="flex justify-center py-20">
-                  <Loader2 className="h-10 w-10 animate-spin text-primary/50" />
-                </div>
-              )}
-              {!isTodosLoading && filteredTodos?.length === 0 && (
-                <div className="text-center py-20 bg-white/30 backdrop-blur rounded-3xl border border-dashed border-primary/20">
-                  <Sparkles className="h-12 w-12 text-primary/20 mx-auto mb-4" />
-                  <p className="text-muted-foreground">No tasks match your current filter.</p>
-                </div>
-              )}
-              {filteredTodos?.map((todo) => (
-                <Card 
-                  key={todo.id} 
-                  className={cn(
-                    "todo-card transition-all duration-300 group hover:translate-x-1 border-l-4",
-                    todo.completed ? "border-l-green-500 opacity-70" : 
-                    todo.priority === 'high' ? "border-l-rose-500" :
-                    todo.priority === 'medium' ? "border-l-amber-500" : "border-l-blue-500"
-                  )}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="todo-card lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-xl font-black flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-primary" /> Streak History
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="h-[250px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={stats?.streakHistory}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#555" opacity={0.2} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888'}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888'}} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
+                  itemStyle={{ color: '#fff' }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="streak" 
+                  stroke="#A855F7" 
+                  strokeWidth={4} 
+                  dot={{r: 6, fill: '#A855F7', strokeWidth: 2, stroke: '#fff'}} 
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="todo-card">
+          <CardHeader>
+            <CardTitle className="text-xl font-black flex items-center gap-2">
+              <PieChartIcon className="h-5 w-5 text-secondary" /> Flow Efficiency
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="h-[250px] w-full flex items-center justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={stats?.chartData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={70}
+                  outerRadius={90}
+                  paddingAngle={8}
+                  dataKey="value"
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-4">
-                      <button 
-                        onClick={() => toggleTodo(todo)}
-                        className={cn(
-                          "mt-1 shrink-0 transition-colors",
-                          todo.completed ? "text-green-500" : "text-muted-foreground hover:text-primary"
-                        )}
-                      >
-                        {todo.completed ? <CheckCircle2 className="h-6 w-6" /> : <Circle className="h-6 w-6" />}
-                      </button>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center flex-wrap gap-2 mb-1">
-                          <p className={cn(
-                            "text-lg font-medium break-words",
-                            todo.completed && "line-through text-muted-foreground"
-                          )}>
-                            {todo.title}
-                          </p>
-                          {todo.priority && (
-                            <Badge variant="outline" className={cn("text-[10px] h-5 uppercase px-2", PRIORITY_COLORS[todo.priority as keyof typeof PRIORITY_COLORS])}>
-                              {todo.priority}
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          {todo.dueDate && (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" /> {format(parseISO(todo.dueDate), 'MMM d')}
-                            </span>
-                          )}
-                          {todo.isDaily && (
-                            <span className="flex items-center gap-1 text-primary">
-                              <Zap className="h-3 w-3" /> Streak: {todo.streakDays || 0}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                  {stats?.chartData?.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
 
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={async () => {
-                          setBreakingDownId(todo.id);
-                          try {
-                            const subtasks = await aiTaskBreakdown(todo.title);
-                            const docRef = doc(db!, "users", user!.uid, "todos", todo.id);
-                            updateDocumentNonBlocking(docRef, { subtasks });
-                          } finally {
-                            setBreakingDownId(null);
-                          }
-                        }}
-                        disabled={breakingDownId === todo.id || todo.completed}
-                        className="text-secondary hover:bg-secondary/10"
-                      >
-                        {breakingDownId === todo.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </ScrollArea>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-black flex items-center gap-2">
+            <TrendingUp className="h-6 w-6 text-primary" /> Next Up
+          </h2>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-[140px] glass-card border-none h-10 rounded-xl font-bold">
+              <SelectValue placeholder="Filter" />
+            </SelectTrigger>
+            <SelectContent className="glass-card">
+              <SelectItem value="all">Everything</SelectItem>
+              <SelectItem value="pending">Waiting</SelectItem>
+              <SelectItem value="completed">Finished</SelectItem>
+              <SelectItem value="daily">Habits</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+
+        <ScrollArea className="h-[500px] pr-4">
+          <div className="space-y-4">
+            {isTodosLoading && (
+              <div className="flex justify-center py-20">
+                <Loader2 className="h-10 w-10 animate-spin text-primary/50" />
+              </div>
+            )}
+            {!isTodosLoading && filteredTodos?.length === 0 && (
+              <div className="text-center py-24 glass-card border-dashed">
+                <TeddyIcon variant="todos" size={64} className="mx-auto opacity-20 mb-4" />
+                <p className="text-muted-foreground font-black">All clear! Relax and enjoy. 🐻☕</p>
+              </div>
+            )}
+            {filteredTodos?.map((todo) => (
+              <Card 
+                key={todo.id} 
+                className={cn(
+                  "todo-card group hover:translate-x-2 transition-all duration-300",
+                  todo.completed && "opacity-60"
+                )}
+              >
+                <CardContent className="p-5 flex items-center gap-4">
+                  <button 
+                    onClick={() => toggleTodo(todo)}
+                    className={cn(
+                      "shrink-0 transition-all transform hover:scale-125",
+                      todo.completed ? "text-green-500" : "text-zinc-500"
+                    )}
+                  >
+                    {todo.completed ? <CheckCircle2 className="h-7 w-7" /> : <Circle className="h-7 w-7" />}
+                  </button>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center flex-wrap gap-2 mb-1">
+                      <p className={cn(
+                        "text-lg font-bold truncate",
+                        todo.completed && "line-through text-muted-foreground"
+                      )}>
+                        {todo.title}
+                      </p>
+                      {todo.priority && (
+                        <span className={cn("text-[8px] font-black uppercase px-2 py-0.5 rounded-full border", PRIORITY_COLORS[todo.priority as keyof typeof PRIORITY_COLORS])}>
+                          {todo.priority}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-4 text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                      {todo.dueDate && (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" /> {format(parseISO(todo.dueDate), 'MMM d')}
+                        </span>
+                      )}
+                      {todo.isDaily && (
+                        <span className="flex items-center gap-1 text-purple-400">
+                          <Zap className="h-3 w-3" /> {todo.streakDays || 0} Streak
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={async () => {
+                      setBreakingDownId(todo.id);
+                      try {
+                        const subtasks = await aiTaskBreakdown(todo.title);
+                        const docRef = doc(db!, "users", user!.uid, "todos", todo.id);
+                        updateDocumentNonBlocking(docRef, { subtasks });
+                      } finally {
+                        setBreakingDownId(null);
+                      }
+                    }}
+                    disabled={breakingDownId === todo.id || todo.completed}
+                    className="text-primary hover:bg-primary/10 rounded-xl"
+                  >
+                    {breakingDownId === todo.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-5 w-5" />}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </ScrollArea>
       </div>
     </div>
   );

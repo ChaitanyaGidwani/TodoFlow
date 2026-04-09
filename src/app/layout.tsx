@@ -20,15 +20,17 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
         <ThemeProvider>
           <FirebaseClientProvider>
-            <div className="flex min-h-screen">
-              <Navigation />
-              <main className="flex-1 md:ml-20 mb-16 md:mb-0 transition-all duration-300">
-                {children}
+            <Navigation />
+            <div className="flex flex-col min-h-screen">
+              <main className="flex-1 pt-20 md:ml-20 mb-20 md:mb-0 transition-all duration-300">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                  {children}
+                </div>
               </main>
             </div>
             <Toaster />
