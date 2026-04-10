@@ -1,39 +1,25 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { doc, serverTimestamp } from "firebase/firestore";
 import { 
-  useFirestore, 
   useUser, 
-  updateDocumentNonBlocking
+  useFirestore 
 } from "@/firebase";
 import { useTodos } from "@/hooks/use-todos";
-import { Button } from "@/components/ui/button";
+import { useProfile } from "@/hooks/use-profile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { 
-  CheckCircle2, 
-  Circle,
-  Wand2,
-  TrendingUp,
-  PieChart as PieChartIcon,
+  Flame, 
+  CheckCircle, 
+  Calendar, 
+  Star, 
+  Sparkles, 
+  TrendingUp, 
+  PieChart as PieChartIcon, 
   BarChart3,
-  Clock,
   Loader2,
-  Flame,
-  Star,
-  Sparkles,
-  Calendar,
-  Zap,
-  User,
-  Settings
+  Zap
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -49,11 +35,9 @@ import {
   BarChart,
   Bar
 } from "recharts";
-import { aiTaskBreakdown } from "@/ai/flows/ai-task-breakdown";
 import { cn } from "@/lib/utils";
-import { format, isToday, isYesterday, parseISO, eachDayOfInterval, subDays } from "date-fns";
+import { format, isToday, parseISO, eachDayOfInterval, subDays, isYesterday } from "date-fns";
 import { TeddyIcon } from "@/components/TeddyIcons";
-import { useProfile } from "@/hooks/use-profile";
 import { 
   Carousel, 
   CarouselContent, 
@@ -62,43 +46,9 @@ import {
 
 const COLORS = ["#A855F7", "#3B82F6", "#EC4899", "#10B981"];
 
-function AnimatedNumber({ value }: { value: number }) {
-  const [displayValue, setDisplayValue] = useState(0);
-
-  useEffect(() => {
-    let start = 0;
-    const end = value;
-    if (start === end) {
-      setDisplayValue(end);
-      return;
-    }
-    
-    const duration = 1000;
-    const stepTime = Math.abs(Math.floor(duration / (end || 1))) || 20;
-    
-    const timer = setInterval(() => {
-      start += Math.ceil(end / 20) || 1;
-      if (start >= end) {
-        setDisplayValue(end);
-        clearInterval(timer);
-      } else {
-        setDisplayValue(start);
-      }
-    }, stepTime);
-    
-    return () => clearInterval(timer);
-  }, [value]);
-
-  return <span>{displayValue}</span>;
-}
-
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
-  const [breakingDownId, setBreakingDownId] = useState<string | null>(null);
-  const [filter, setFilter] = useState("all");
-  
-  const db = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { isUserLoading } = useUser();
   const { profile } = useProfile();
   const { todos, loading: isTodosLoading } = useTodos();
 
@@ -106,95 +56,89 @@ export default function Dashboard() {
     setMounted(true);
   }, []);
 
-  const stats = useMemo(() => {
-    if (!todos.length) return null;
-    const completedCount = todos.filter(t => t.completed).length;
-    const pendingCount = todos.length - completedCount;
-    const dueTodayCount = todos.filter(t => t.dueDate && isToday(parseISO(t.dueDate))).length;
-    const maxStreak = Math.max(...todos.map(t => t.streakDays || 0), 0);
-    
-    const chartData = [
-      { name: "Done", value: completedCount },
-      { name: "Active", value: pendingCount }
-    ];
+  const statsData = useMemo(() => {
+    if (!todos || todos.length === 0) return { streak: 0, completedToday: 0, dueToday: 0, badges: 0 };
 
-    const streakHistory = todos
-      .filter(t => t.isDaily)
-      .slice(0, 7)
-      .reverse()
-      .map(t => ({ 
-        name: t.title.substring(0, 8), 
-        streak: t.streakDays || 0 
-      }));
+    // 1. Calculate Real Streak
+    const dailyHabits = todos.filter(t => t.isDaily);
+    const maxStreak = dailyHabits.length > 0 ? Math.max(...dailyHabits.map(t => t.streakDays || 0)) : 0;
 
-    const weeklyData = eachDayOfInterval({
+    // 2. Completed Today
+    const completedToday = todos.filter(t => t.completed && t.dueDate && isToday(parseISO(t.dueDate))).length;
+
+    // 3. Due Today
+    const dueToday = todos.filter(t => t.dueDate && isToday(parseISO(t.dueDate)) && !t.completed).length;
+
+    // 4. Badges (Simplified: 1 per 10 total completions)
+    const totalCompletions = todos.filter(t => t.completed).length;
+    const badgeCount = Math.floor(totalCompletions / 10);
+
+    return { streak: maxStreak, completedToday, dueToday, badges: badgeCount };
+  }, [todos]);
+
+  const chartData = useMemo(() => {
+    if (!todos) return { weekly: [], split: [] };
+
+    const weekly = eachDayOfInterval({
       start: subDays(new Date(), 6),
       end: new Date()
     }).map(day => {
       const count = todos.filter(t => {
-        const createdDate = t.createdAt?.toDate ? t.createdAt.toDate() : parseISO(t.createdAt);
-        return format(createdDate, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
+        const d = t.createdAt?.toDate ? t.createdAt.toDate() : parseISO(t.createdAt);
+        return format(d, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
       }).length;
-      return {
-        day: format(day, 'EEE'),
-        tasks: count
-      };
+      return { name: format(day, 'EEE'), value: count };
     });
 
-    return { completedCount, pendingCount, dueTodayCount, maxStreak, chartData, streakHistory, weeklyData };
+    const split = [
+      { name: "Done", value: todos.filter(t => t.completed).length },
+      { name: "Pending", value: todos.filter(t => !t.completed).length }
+    ];
+
+    return { weekly, split };
   }, [todos]);
-
-  const toggleTodo = (todo: any) => {
-    if (!db || !user) return;
-    const docRef = doc(db, "users", user.uid, "todos", todo.id);
-    
-    let updates: any = { completed: !todo.completed };
-
-    if (!todo.completed && todo.isDaily) {
-      const lastDate = todo.lastCompletedDate?.toDate ? todo.lastCompletedDate.toDate() : null;
-      let newStreak = todo.streakDays || 0;
-
-      if (!lastDate) {
-        newStreak = 1;
-      } else if (isYesterday(lastDate)) {
-        newStreak += 1;
-      } else if (!isToday(lastDate)) {
-        newStreak = 1;
-      }
-      
-      updates.streakDays = newStreak;
-      updates.lastCompletedDate = serverTimestamp();
-    }
-
-    updateDocumentNonBlocking(docRef, updates);
-  };
-
-  const filteredTodos = todos?.filter(t => {
-    if (filter === "completed") return t.completed;
-    if (filter === "pending") return !t.completed;
-    if (filter === "daily") return t.isDaily;
-    return true;
-  });
 
   if (!mounted || isUserLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
   }
 
   const statItems = [
-    { label: "Streak", value: stats?.maxStreak || 0, icon: Flame, color: "text-orange-500" },
-    { label: "Completed", value: stats?.completedCount || 0, icon: CheckCircle2, color: "text-emerald-500" },
-    { label: "Today", value: stats?.dueTodayCount || 0, icon: Calendar, color: "text-blue-500" },
-    { label: "Badges", value: Math.floor((stats?.completedCount || 0) / 10), icon: Star, color: "text-yellow-500" }
+    { 
+      icon: Flame, 
+      label: 'Current Streak', 
+      value: statsData.streak, 
+      color: 'from-orange-400 to-orange-600',
+      suffix: 'days'
+    },
+    { 
+      icon: CheckCircle, 
+      label: 'Completed Today', 
+      value: statsData.completedToday, 
+      color: 'from-emerald-400 to-emerald-600'
+    },
+    { 
+      icon: Calendar, 
+      label: 'Tasks Due', 
+      value: statsData.dueToday, 
+      color: 'from-blue-400 to-blue-600' 
+    },
+    { 
+      icon: Star, 
+      label: 'Total Badges', 
+      value: statsData.badges, 
+      color: 'from-yellow-400 to-yellow-600'
+    }
   ];
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-20">
+      {/* HEADER */}
       <header className="glass-card p-12 rounded-[2.5rem] text-center border-white/20 dark:border-purple-500/30">
-        <h1 className="text-6xl md:text-8xl font-black bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 bg-clip-text text-transparent leading-tight">
+        <h1 className="text-6xl md:text-8xl font-black bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 bg-clip-text text-transparent leading-tight drop-shadow-sm">
           TodoFlow 🐻
         </h1>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
@@ -202,145 +146,100 @@ export default function Dashboard() {
             <Sparkles className="h-6 w-6 text-purple-600 animate-pulse" />
           </div>
           <div className="text-xl md:text-2xl font-black text-high-contrast tracking-tight">
-            Welcome back, {profile?.displayName || 'Navya'}! ✨
+            Welcome back, {profile?.displayName || 'Todoist'}! ✨
           </div>
         </div>
       </header>
 
-      {/* STAT CARDS MOBILE CAROUSEL */}
-      <div className="md:hidden">
-        <Carousel className="w-full">
-          <CarouselContent>
-            {statItems.map((item, idx) => (
-              <CarouselItem key={idx} className="basis-[85%]">
-                <Card className="graph-card animate-shimmer h-full">
-                  <CardContent className="p-10 flex flex-col items-center text-center gap-8">
-                    <div className={cn("p-6 bg-white/30 dark:bg-black/30 rounded-[2.5rem] shadow-inner border-2 border-white/40 dark:border-purple-500/20", item.color)}>
-                      <item.icon className="h-12 w-12 drop-shadow-lg" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mb-3">{item.label}</p>
-                      <div className="text-6xl font-black text-high-contrast"><AnimatedNumber value={item.value} /></div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-        </Carousel>
-      </div>
-
-      {/* STAT CARDS DESKTOP GRID */}
-      <div className="hidden md:grid grid-cols-4 gap-10">
+      {/* STATS GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {statItems.map((item, idx) => (
-          <Card key={idx} className="graph-card group animate-shimmer">
-            <CardContent className="p-10 flex items-center gap-8">
-              <div className={cn("p-6 bg-white/30 dark:bg-black/30 rounded-[2rem] group-hover:rotate-12 transition-transform border-2 border-white/40 dark:border-purple-500/20 shadow-xl", item.color)}>
-                <item.icon className="h-10 w-10 drop-shadow-lg" />
+          <Card key={idx} className="glass-card group hover:scale-[1.02] transition-all duration-300 overflow-hidden border-none shadow-2xl animate-shimmer">
+            <CardContent className="p-10 flex flex-col items-center text-center">
+              <div className={cn(
+                "p-6 rounded-[2rem] bg-gradient-to-br shadow-xl mb-6 group-hover:rotate-12 transition-transform",
+                item.color
+              )}>
+                <item.icon className="h-10 w-10 text-white drop-shadow-md" />
               </div>
               <div>
-                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-2">{item.label}</p>
-                <div className="text-5xl font-black text-high-contrast"><AnimatedNumber value={item.value} /></div>
+                <div className="text-5xl font-black text-high-contrast mb-2">
+                  {item.value} <span className="text-lg opacity-60 font-bold">{item.suffix || ''}</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em]">
+                  {item.label}
+                </p>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* GRAPHS GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <Card className="graph-card lg:col-span-1 min-h-[500px]">
+      {/* CHARTS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        {/* Weekly Progress */}
+        <Card className="graph-card h-[500px]">
           <CardHeader className="pt-8 px-8">
             <CardTitle className="text-2xl font-black flex items-center gap-4 text-high-contrast">
-              <div className="p-3 bg-purple-500/10 rounded-2xl"><TrendingUp className="h-8 w-8 text-purple-500" /></div> Streak Momentum
+              <div className="p-3 bg-blue-500/10 rounded-2xl"><TrendingUp className="h-8 w-8 text-blue-500" /></div> Weekly Momentum
             </CardTitle>
           </CardHeader>
           <CardContent className="h-[350px] w-full mt-6 px-4">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={stats?.streakHistory || []}>
+              <AreaChart data={chartData.weekly}>
                 <defs>
-                  <linearGradient id="colorStreak" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#A855F7" stopOpacity={0.8}/>
                     <stop offset="95%" stopColor="#A855F7" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#888" opacity={0.1} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888', fontWeight: 900}} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#888', fontWeight: 900}} />
                 <YAxis hide />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.9)', borderRadius: '2rem', border: '2px solid rgba(168,85,247,0.5)', backdropFilter: 'blur(20px)' }}
+                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.9)', borderRadius: '1.5rem', border: 'none', backdropFilter: 'blur(10px)' }}
                   itemStyle={{ color: '#fff', fontWeight: 900 }}
                 />
                 <Area 
                   type="monotone" 
-                  dataKey="streak" 
+                  dataKey="value" 
                   stroke="#A855F7" 
                   strokeWidth={6} 
                   fillOpacity={1} 
-                  fill="url(#colorStreak)" 
-                  dot={{r: 8, fill: '#A855F7', strokeWidth: 4, stroke: '#fff'}}
+                  fill="url(#colorValue)" 
+                  dot={{r: 6, fill: '#A855F7', strokeWidth: 3, stroke: '#fff'}}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card className="graph-card lg:col-span-1 min-h-[500px]">
+        {/* Task Split */}
+        <Card className="graph-card h-[500px]">
           <CardHeader className="pt-8 px-8">
             <CardTitle className="text-2xl font-black flex items-center gap-4 text-high-contrast">
-              <div className="p-3 bg-blue-500/10 rounded-2xl"><BarChart3 className="h-8 w-8 text-blue-500" /></div> Weekly Output
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="h-[350px] w-full mt-6 px-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats?.weeklyData || []}>
-                <defs>
-                  <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3B82F6" stopOpacity={1}/>
-                    <stop offset="100%" stopColor="#A855F7" stopOpacity={1}/>
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#888', fontWeight: 900}} />
-                <YAxis hide />
-                <Tooltip 
-                  cursor={{fill: 'rgba(255,255,255,0.1)'}}
-                  contentStyle={{ backgroundColor: 'rgba(0,0,0,0.9)', borderRadius: '2rem', border: '2px solid rgba(59,130,246,0.5)' }}
-                />
-                <Bar dataKey="tasks" radius={[15, 15, 15, 15]}>
-                  {(stats?.weeklyData || []).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill="url(#colorBar)" />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="graph-card min-h-[500px]">
-          <CardHeader className="pt-8 px-8">
-            <CardTitle className="text-2xl font-black flex items-center gap-4 text-high-contrast">
-              <div className="p-3 bg-pink-500/10 rounded-2xl"><PieChartIcon className="h-8 w-8 text-pink-500" /></div> Focus Ratio
+              <div className="p-3 bg-pink-500/10 rounded-2xl"><PieChartIcon className="h-8 w-8 text-pink-500" /></div> Flow Ratio
             </CardTitle>
           </CardHeader>
           <CardContent className="h-[350px] w-full relative flex items-center justify-center">
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              <div className="bg-white/40 dark:bg-black/40 p-6 rounded-full backdrop-blur-3xl animate-spin-slow border-4 border-white/60 dark:border-purple-500/30 shadow-2xl">
+              <div className="bg-white/40 dark:bg-black/40 p-6 rounded-full backdrop-blur-3xl animate-teddy border-4 border-white/60 dark:border-purple-500/30 shadow-2xl">
                 <TeddyIcon variant={profile?.teddyVariant as any || 'magic-panda'} size={72} color={profile?.teddyColor} />
               </div>
             </div>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={stats?.chartData || []}
+                  data={chartData.split}
                   cx="50%"
                   cy="50%"
-                  innerRadius={105}
+                  innerRadius={110}
                   outerRadius={140}
-                  paddingAngle={12}
+                  paddingAngle={10}
                   dataKey="value"
                   stroke="none"
                 >
-                  {(stats?.chartData || []).map((entry: any, index: number) => (
+                  {chartData.split.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -349,108 +248,6 @@ export default function Dashboard() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      </div>
-
-      {/* TODO LIST */}
-      <div className="space-y-10">
-        <div className="flex items-center justify-between">
-          <h2 className="text-4xl font-black flex items-center gap-6 text-high-contrast">
-            <div className="p-3 bg-primary/10 rounded-2xl"><TrendingUp className="h-8 w-8 text-primary" /></div> Active Flow
-          </h2>
-          <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-[220px] graph-card border-none h-16 rounded-[1.5rem] font-black px-8 shadow-2xl">
-              <SelectValue placeholder="Filter" />
-            </SelectTrigger>
-            <SelectContent className="glass-card border-none shadow-2xl rounded-[1.5rem]">
-              <SelectItem value="all">Everything</SelectItem>
-              <SelectItem value="pending">Waiting</SelectItem>
-              <SelectItem value="completed">Finished</SelectItem>
-              <SelectItem value="daily">Habits</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <ScrollArea className="h-[600px] pr-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {isTodosLoading && (
-              <div className="col-span-full flex justify-center py-32">
-                <Loader2 className="h-16 w-16 animate-spin text-primary" />
-              </div>
-            )}
-            {!isTodosLoading && filteredTodos?.length === 0 && (
-              <div className="col-span-full text-center py-40 graph-card border-dashed border-4">
-                <div className="bg-primary/5 p-10 rounded-full w-fit mx-auto mb-8 animate-teddy">
-                  <TeddyIcon variant="todos" size={84} className="opacity-30" />
-                </div>
-                <div className="text-muted-foreground font-black text-xl">All clear! Relax and enjoy. 🐻☕</div>
-              </div>
-            )}
-            {filteredTodos?.map((todo) => (
-              <Card 
-                key={todo.id} 
-                className={cn(
-                  "todo-card group transition-all duration-300",
-                  todo.completed && "opacity-60 grayscale-[0.4]"
-                )}
-              >
-                <CardContent className="p-10 flex items-center gap-8">
-                  <button 
-                    onClick={() => toggleTodo(todo)}
-                    className={cn(
-                      "shrink-0 transition-all transform hover:scale-125",
-                      todo.completed ? "text-green-500" : "text-zinc-500 dark:text-zinc-400"
-                    )}
-                  >
-                    {todo.completed ? <CheckCircle2 className="h-12 w-12 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]" /> : <Circle className="h-12 w-12" />}
-                  </button>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center flex-wrap gap-3 mb-3">
-                      <div className={cn(
-                        "text-2xl font-black truncate text-high-contrast",
-                        todo.completed && "line-through opacity-50"
-                      )}>
-                        {todo.title}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-4 text-[12px] text-muted-foreground font-black uppercase tracking-widest">
-                      {todo.dueDate && (
-                        <span className="flex items-center gap-2 bg-white/30 px-3 py-1.5 rounded-xl border border-white/20">
-                          <Calendar className="h-4 w-4 text-blue-500" /> {format(parseISO(todo.dueDate), 'MMM d')}
-                        </span>
-                      )}
-                      {todo.isDaily && (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-500/10 text-purple-700 rounded-full text-xs font-bold border border-purple-200">
-                          <Zap className="h-3 w-3"/> {todo.streakDays || 0}d
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={async () => {
-                      setBreakingDownId(todo.id);
-                      try {
-                        const subtasks = await aiTaskBreakdown(todo.title);
-                        const docRef = doc(db!, "users", user!.uid, "todos", todo.id);
-                        updateDocumentNonBlocking(docRef, { subtasks });
-                      } finally {
-                        setBreakingDownId(null);
-                      }
-                    }}
-                    disabled={breakingDownId === todo.id || todo.completed}
-                    className="text-primary hover:bg-primary/20 rounded-[1.5rem] w-16 h-16 shadow-lg border-2 border-primary/20"
-                  >
-                    {breakingDownId === todo.id ? <Loader2 className="h-7 w-7 animate-spin" /> : <Wand2 className="h-8 w-8" />}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </ScrollArea>
       </div>
     </div>
   );
