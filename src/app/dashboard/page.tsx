@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -17,9 +16,7 @@ import {
   Sparkles, 
   TrendingUp, 
   PieChart as PieChartIcon, 
-  BarChart3,
-  Loader2,
-  Zap
+  Loader2
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -31,12 +28,10 @@ import {
   ResponsiveContainer, 
   PieChart, 
   Pie, 
-  Cell,
-  BarChart,
-  Bar
+  Cell
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { format, isToday, parseISO, eachDayOfInterval, subDays, isYesterday } from "date-fns";
+import { format, isToday, parseISO, eachDayOfInterval, subDays } from "date-fns";
 import { TeddyIcon } from "@/components/TeddyIcons";
 import { 
   Carousel, 
@@ -59,17 +54,12 @@ export default function Dashboard() {
   const statsData = useMemo(() => {
     if (!todos || todos.length === 0) return { streak: 0, completedToday: 0, dueToday: 0, badges: 0 };
 
-    // 1. Calculate Real Streak
     const dailyHabits = todos.filter(t => t.isDaily);
     const maxStreak = dailyHabits.length > 0 ? Math.max(...dailyHabits.map(t => t.streakDays || 0)) : 0;
 
-    // 2. Completed Today
     const completedToday = todos.filter(t => t.completed && t.dueDate && isToday(parseISO(t.dueDate))).length;
-
-    // 3. Due Today
     const dueToday = todos.filter(t => t.dueDate && isToday(parseISO(t.dueDate)) && !t.completed).length;
 
-    // 4. Badges (Simplified: 1 per 10 total completions)
     const totalCompletions = todos.filter(t => t.completed).length;
     const badgeCount = Math.floor(totalCompletions / 10);
 
@@ -138,23 +128,23 @@ export default function Dashboard() {
     <div className="space-y-12 animate-in fade-in duration-700 pb-20">
       {/* HEADER */}
       <header className="glass-card p-12 rounded-[2.5rem] text-center border-white/20 dark:border-purple-500/30">
-        <h1 className="text-6xl md:text-8xl font-black bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 bg-clip-text text-transparent leading-tight drop-shadow-sm">
-          TodoFlow 🐻
+        <h1 className="text-5xl md:text-7xl font-black bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 bg-clip-text text-transparent mb-6 leading-tight drop-shadow-sm">
+          Welcome to <span className="text-6xl">TodoFlow</span> 🐻✨
         </h1>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
           <div className="p-3 bg-purple-500/10 rounded-2xl border border-purple-200/50 backdrop-blur-sm">
             <Sparkles className="h-6 w-6 text-purple-600 animate-pulse" />
           </div>
           <div className="text-xl md:text-2xl font-black text-high-contrast tracking-tight">
-            Welcome back, {profile?.displayName || 'Todoist'}! ✨
+            Welcome back, {profile?.displayName || 'Superstar'}! ✨
           </div>
         </div>
       </header>
 
-      {/* STATS GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      {/* STATS GRID - Carousel on mobile, Grid on desktop */}
+      <div className="hidden sm:grid grid-cols-2 lg:grid-cols-4 gap-8">
         {statItems.map((item, idx) => (
-          <Card key={idx} className="glass-card group hover:scale-[1.02] transition-all duration-300 overflow-hidden border-none shadow-2xl animate-shimmer">
+          <Card key={idx} className="glass-card group hover:scale-[1.05] transition-all duration-300 overflow-hidden border-none shadow-2xl animate-shimmer">
             <CardContent className="p-10 flex flex-col items-center text-center">
               <div className={cn(
                 "p-6 rounded-[2rem] bg-gradient-to-br shadow-xl mb-6 group-hover:rotate-12 transition-transform",
@@ -162,22 +152,43 @@ export default function Dashboard() {
               )}>
                 <item.icon className="h-10 w-10 text-white drop-shadow-md" />
               </div>
-              <div>
-                <div className="text-5xl font-black text-high-contrast mb-2">
-                  {item.value} <span className="text-lg opacity-60 font-bold">{item.suffix || ''}</span>
-                </div>
-                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em]">
-                  {item.label}
-                </p>
+              <div className="text-5xl font-black text-high-contrast mb-2">
+                {item.value} <span className="text-lg opacity-60 font-bold">{item.suffix || ''}</span>
               </div>
+              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em]">
+                {item.label}
+              </p>
             </CardContent>
           </Card>
         ))}
       </div>
 
+      <div className="sm:hidden">
+        <Carousel className="w-full">
+          <CarouselContent>
+            {statItems.map((item, idx) => (
+              <CarouselItem key={idx}>
+                <Card className="glass-card border-none shadow-2xl mx-1">
+                  <CardContent className="p-10 flex flex-col items-center text-center">
+                    <div className={cn("p-6 rounded-[2rem] bg-gradient-to-br shadow-xl mb-6", item.color)}>
+                      <item.icon className="h-10 w-10 text-white drop-shadow-md" />
+                    </div>
+                    <div className="text-5xl font-black text-high-contrast mb-2">
+                      {item.value} <span className="text-lg opacity-60 font-bold">{item.suffix || ''}</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em]">
+                      {item.label}
+                    </p>
+                  </CardContent>
+                </Card>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+        </Carousel>
+      </div>
+
       {/* CHARTS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        {/* Weekly Progress */}
         <Card className="graph-card h-[500px]">
           <CardHeader className="pt-8 px-8">
             <CardTitle className="text-2xl font-black flex items-center gap-4 text-high-contrast">
@@ -214,7 +225,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Task Split */}
         <Card className="graph-card h-[500px]">
           <CardHeader className="pt-8 px-8">
             <CardTitle className="text-2xl font-black flex items-center gap-4 text-high-contrast">
