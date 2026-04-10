@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { 
   collection, 
@@ -14,7 +15,7 @@ import {
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking
 } from "@/firebase";
-import { useTodos } from "@/hooks/use-todos";
+import { useTodos, Todo } from "@/hooks/use-todos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,12 +38,13 @@ import {
   Wand2,
   Calendar,
   Search,
-  Sparkles
+  Sparkles,
+  Lock
 } from "lucide-react";
 import { TeddyIcon } from "@/components/TeddyIcons";
 import { aiTaskBreakdown } from "@/ai/flows/ai-task-breakdown";
 import { cn } from "@/lib/utils";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfDay, isAfter } from "date-fns";
 
 const PRIORITY_COLORS = {
   low: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-700",
@@ -64,12 +66,66 @@ export default function TodosPage() {
   const router = useRouter();
   const db = useFirestore();
   const { user, isUserLoading } = useUser();
-  
   const { todos, loading: isLoading } = useTodos();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const isFutureTask = useCallback((dateStr?: string | null) => {
+    if (!dateStr) return false;
+    const date = parseISO(dateStr);
+    const today = startOfDay(new Date());
+    return isAfter(date, today);
+  }, []);
+
+  const handleAddTodo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTodo.trim() || !user || !db) return;
+
+    setAdding(true);
+    const colRef = collection(db, "users", user.uid, "todos");
+    
+    // Normalize date to start of day for better comparison
+    const normalizedDueDate = dueDate ? startOfDay(new Date(dueDate)).toISOString() : null;
+
+    addDocumentNonBlocking(colRef, {
+      title: newTodo,
+      completed: false,
+      userId: user.uid,
+      createdAt: serverTimestamp(),
+      priority,
+      isDaily,
+      dueDate: normalizedDueDate,
+      streakDays: 0
+    });
+    
+    setNewTodo("");
+    setDueDate("");
+    setAdding(false);
+  };
+
+  const toggleTodo = (todo: Todo) => {
+    if (!db || !user || isFutureTask(todo.dueDate)) return;
+    const docRef = doc(db, "users", user.uid, "todos", todo.id);
+    updateDocumentNonBlocking(docRef, { completed: !todo.completed });
+  };
+
+  const handleDelete = (todo: Todo) => {
+    if (!db || !user) return;
+    const future = isFutureTask(todo.dueDate);
+    if (future) {
+      if (!confirm('This is a future task. Delete it permanently? 🐻')) return;
+    }
+    const docRef = doc(db, "users", user.uid, "todos", todo.id);
+    deleteDocumentNonBlocking(docRef);
+  };
+
+  const filteredTodos = todos?.filter(t => {
+    const matchesSearch = t.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = filter === "all" || (filter === "daily" && t.isDaily) || (filter === "completed" && t.completed) || (filter === "pending" && !t.completed);
+    return matchesSearch && matchesFilter;
+  });
 
   if (!mounted || isUserLoading) {
     return (
@@ -83,41 +139,6 @@ export default function TodosPage() {
     router.push("/"); 
     return null; 
   }
-
-  const handleAddTodo = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTodo.trim() || !user || !db) return;
-
-    setAdding(true);
-    const colRef = collection(db, "users", user.uid, "todos");
-    
-    addDocumentNonBlocking(colRef, {
-      title: newTodo,
-      completed: false,
-      userId: user.uid,
-      createdAt: serverTimestamp(),
-      priority,
-      isDaily,
-      dueDate: dueDate || null,
-      streakDays: 0
-    });
-    
-    setNewTodo("");
-    setDueDate("");
-    setAdding(false);
-  };
-
-  const toggleTodo = (todo: any) => {
-    if (!db || !user) return;
-    const docRef = doc(db, "users", user.uid, "todos", todo.id);
-    updateDocumentNonBlocking(docRef, { completed: !todo.completed });
-  };
-
-  const filteredTodos = todos?.filter(t => {
-    const matchesSearch = t.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filter === "all" || (filter === "daily" && t.isDaily) || (filter === "completed" && t.completed) || (filter === "pending" && !t.completed);
-    return matchesSearch && matchesFilter;
-  });
 
   return (
     <div className="max-w-5xl mx-auto p-4 sm:p-8 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -216,82 +237,92 @@ export default function TodosPage() {
               <p className="text-muted-foreground font-black text-lg">No tasks found. Time to add some goals?</p>
             </div>
           )}
-          {filteredTodos?.map((todo) => (
-            <Card 
-              key={todo.id} 
-              className={cn(
-                "todo-card transition-all duration-300 group hover:translate-x-2 border-l-[6px] shadow-xl",
-                todo.completed ? "border-l-green-500 opacity-60" : 
-                todo.priority === 'high' ? "border-l-rose-500" :
-                todo.priority === 'medium' ? "border-l-amber-500" : "border-l-blue-500"
-              )}
-            >
-              <CardContent className="p-6 flex items-center gap-6">
-                <button 
-                  onClick={() => toggleTodo(todo)}
-                  className={cn(
-                    "shrink-0 transition-all transform hover:scale-125",
-                    todo.completed ? "text-green-500" : "text-muted-foreground hover:text-primary"
-                  )}
-                >
-                  {todo.completed ? <CheckCircle2 className="h-9 w-9" /> : <Circle className="h-9 w-9" />}
-                </button>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center flex-wrap gap-3">
-                    <span className={cn(
-                      "text-xl font-black truncate text-high-contrast",
-                      todo.completed && "line-through opacity-50"
-                    )}>
-                      {todo.title}
-                    </span>
-                    {todo.priority && (
-                      <Badge className={cn("text-[10px] h-6 uppercase font-black px-3 rounded-lg border-2", PRIORITY_COLORS[todo.priority as keyof typeof PRIORITY_COLORS])}>
-                        {todo.priority}
-                      </Badge>
+          {filteredTodos?.map((todo) => {
+            const future = isFutureTask(todo.dueDate);
+            return (
+              <Card 
+                key={todo.id} 
+                className={cn(
+                  "todo-card transition-all duration-300 group hover:translate-x-2 border-l-[6px] shadow-xl",
+                  todo.completed && !future ? "border-l-green-500 opacity-60" : 
+                  future ? "border-l-orange-500 bg-orange-500/5" :
+                  todo.priority === 'high' ? "border-l-rose-500" :
+                  todo.priority === 'medium' ? "border-l-amber-500" : "border-l-blue-500"
+                )}
+              >
+                <CardContent className="p-6 flex items-center gap-6">
+                  <button 
+                    onClick={() => toggleTodo(todo)}
+                    disabled={future}
+                    className={cn(
+                      "shrink-0 transition-all transform",
+                      future ? "text-gray-400 cursor-not-allowed opacity-50" : 
+                      todo.completed ? "text-green-500 hover:scale-125" : "text-muted-foreground hover:text-primary hover:scale-125"
+                    )}
+                  >
+                    {future ? <Lock className="h-9 w-9" /> : todo.completed ? <CheckCircle2 className="h-9 w-9" /> : <Circle className="h-9 w-9" />}
+                  </button>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center flex-wrap gap-3">
+                      <span className={cn(
+                        "text-xl font-black truncate text-high-contrast transition-all",
+                        todo.completed && !future && "line-through opacity-50",
+                        future && "text-purple-600 dark:text-purple-400"
+                      )}>
+                        {todo.title}
+                      </span>
+                      {todo.priority && (
+                        <Badge className={cn("text-[10px] h-6 uppercase font-black px-3 rounded-lg border-2", PRIORITY_COLORS[todo.priority as keyof typeof PRIORITY_COLORS])}>
+                          {todo.priority}
+                        </Badge>
+                      )}
+                      {future && (
+                        <Badge className="bg-orange-500/90 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border-none shadow-lg">
+                          Future
+                        </Badge>
+                      )}
+                    </div>
+                    {todo.dueDate && (
+                      <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground mt-2">
+                        <Calendar className="h-3.5 w-3.5" /> 
+                        {future ? `⏳ Due ${format(parseISO(todo.dueDate), 'MMM d')}` : `✅ Due ${format(parseISO(todo.dueDate), 'MMM d')}`}
+                      </div>
                     )}
                   </div>
-                  {todo.dueDate && (
-                    <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-muted-foreground mt-2">
-                      <Calendar className="h-3.5 w-3.5" /> Due: {format(parseISO(todo.dueDate), 'MMM d')}
-                    </div>
-                  )}
-                </div>
 
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={async () => {
-                      setBreakingDownId(todo.id);
-                      try {
-                        const subtasks = await aiTaskBreakdown(todo.title);
-                        const docRef = doc(db!, "users", user!.uid, "todos", todo.id);
-                        updateDocumentNonBlocking(docRef, { subtasks });
-                      } finally {
-                        setBreakingDownId(null);
-                      }
-                    }}
-                    disabled={breakingDownId === todo.id || todo.completed}
-                    className="w-12 h-12 rounded-xl hover:bg-primary/20 text-primary shadow-sm"
-                  >
-                    {breakingDownId === todo.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <Wand2 className="h-5 w-5" />}
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => {
-                      const docRef = doc(db!, "users", user!.uid, "todos", todo.id);
-                      deleteDocumentNonBlocking(docRef);
-                    }}
-                    className="w-12 h-12 rounded-xl text-destructive hover:bg-destructive/10 shadow-sm"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={async () => {
+                        setBreakingDownId(todo.id);
+                        try {
+                          const subtasks = await aiTaskBreakdown(todo.title);
+                          const docRef = doc(db!, "users", user!.uid, "todos", todo.id);
+                          updateDocumentNonBlocking(docRef, { subtasks });
+                        } finally {
+                          setBreakingDownId(null);
+                        }
+                      }}
+                      disabled={breakingDownId === todo.id || todo.completed || future}
+                      className="w-12 h-12 rounded-xl hover:bg-primary/20 text-primary shadow-sm"
+                    >
+                      {breakingDownId === todo.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <Wand2 className="h-5 w-5" />}
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => handleDelete(todo)}
+                      className="w-12 h-12 rounded-xl text-destructive hover:bg-destructive/10 shadow-sm"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </ScrollArea>
     </div>
