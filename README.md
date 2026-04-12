@@ -1,41 +1,42 @@
+# 🌊 TodoFlow
 
-# TodoFlow
+**TodoFlow** is a world-class, AI-integrated task management application designed with a focus on serenity and productivity. Featuring a sleek glassmorphism UI, real-time synchronization, and intelligent task decomposition, it helps users turn overwhelming projects into manageable steps.
 
-A world-class, AI-powered todo application featuring a serene gradient design, real-time synchronization, and smart task breakdown capabilities.
+---
 
-## Getting Started
+## ✨ Key Features
 
-### Firebase Setup
+* **🧠 AI Task Breakdown**: Powered by **Google Gemini**, simply click the ✨ wand icon to decompose complex tasks into actionable sub-steps.
+* **🔄 Real-time Sync**: Instant data persistence across all devices using **Firebase Firestore**.
+* **📶 Offline Support**: Continued productivity without internet; changes sync automatically once reconnected.
+* **🎨 Modern Aesthetic**: A beautiful, responsive UI built with **Tailwind CSS**, featuring soft gradients and translucent glassmorphism components.
+* **🔒 Secure Auth**: Robust user authentication via **Firebase Auth**.
 
-1. Create a new Firebase project at [console.firebase.google.com](https://console.firebase.google.com/).
-2. Enable **Authentication** with the **Email/Password** provider.
-3. Create a **Firestore Database** in test mode or production mode.
-4. Set the following **Security Rules** for Firestore:
-   ```javascript
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-       match /todos/{todoId} {
-         allow read, write: if request.auth != null && (resource == null || resource.data.userId == request.auth.uid) && (request.resource == null || request.resource.data.userId == request.auth.uid);
-       }
-     }
-   }
-   ```
-5. Add a Web App to your Firebase project and copy the configuration.
-6. Replace the placeholder config in `src/lib/firebase.ts`.
+---
 
-### Features
+## 🛠️ Tech Stack
 
-- **Real-time Sync**: Todos sync across devices instantly.
-- **AI Task Breakdown**: Click the ✨ wand icon on any complex task to have TodoFlow's AI break it down into smaller, actionable steps.
-- **Offline Support**: Keep productive even when the internet isn't. Changes will sync when you're back online.
-- **Responsive Design**: Works perfectly on mobile, tablet, and desktop.
-- **Beautiful UI**: A soft gradient background with translucent cards for a modern, glassmorphism aesthetic.
+| Layer | Technology |
+| :--- | :--- |
+| **Framework** | [Next.js 15 (App Router)](https://nextjs.org/) |
+| **Database** | [Firebase Firestore](https://firebase.google.com/) |
+| **Authentication** | [Firebase Auth](https://firebase.google.com/products/auth) |
+| **AI Orchestration** | [Genkit](https://firebase.google.com/docs/genkit) + Google Gemini |
+| **Styling** | [Tailwind CSS](https://tailwindcss.com/) |
+| **Icons** | [Lucide React](https://lucide.dev/) |
 
-## Tech Stack
+---
 
-- **Framework**: Next.js 15 (App Router)
-- **Database/Auth**: Firebase (Firestore + Auth)
-- **Styling**: Tailwind CSS
-- **Icons**: Lucide React
-- **AI**: Google Gemini via Genkit
+## 🚀 Getting Started
+
+### Prerequisites
+
+* Node.js 18+ 
+* A Firebase Project
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone [https://github.com/navyaa-sh28/TodoFlow.git](https://github.com/navyaa-sh28/TodoFlow.git)
+   cd TodoFlow
