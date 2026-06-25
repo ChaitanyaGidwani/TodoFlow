@@ -7,7 +7,8 @@ import {
   onSnapshot, 
   orderBy, 
   DocumentData,
-  FirestoreError
+  FirestoreError,
+  Timestamp
 } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 
@@ -15,14 +16,14 @@ export interface Todo {
   id: string;
   title: string;
   completed: boolean;
-  createdAt: any;
+  createdAt: Timestamp | string | null;
   userId: string;
   subtasks?: string[];
   isDaily?: boolean;
   priority?: "low" | "medium" | "high";
   dueDate?: string;
   streakDays?: number;
-  lastCompletedDate?: any;
+  lastCompletedDate?: Timestamp | string | null;
 }
 
 /**

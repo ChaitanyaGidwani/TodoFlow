@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { 
   format, 
   startOfMonth, 
@@ -50,8 +51,9 @@ export default function CalendarPage() {
   
   const { todos, loading } = useTodos();
   const { profile } = useProfile();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const db = useFirestore();
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
@@ -121,11 +123,16 @@ export default function CalendarPage() {
     return 'pending';
   }, [todosByDate]);
 
-  if (!mounted || loading) return (
+  if (!mounted || loading || isUserLoading) return (
     <div className="min-h-screen flex items-center justify-center">
       <Loader2 className="h-10 w-10 animate-spin text-primary" />
     </div>
   );
+
+  if (!user) {
+    router.push("/");
+    return null;
+  }
 
   return (
     <div className={cn(

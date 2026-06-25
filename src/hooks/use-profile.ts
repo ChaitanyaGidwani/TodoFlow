@@ -10,7 +10,7 @@ export interface UserProfile {
   avatarUrl: string;
   teddyVariant: string;
   teddyColor: string;
-  pattern: 'none' | 'paws' | 'dots' | 'stripes' | 'stars';
+  pattern: 'none' | 'paws' | 'dots' | 'stripes' | 'stars' | 'waves' | 'hexagons';
   updatedAt: any;
 }
 
@@ -36,7 +36,7 @@ export function useProfile() {
           userId: user.uid,
           displayName: user.email?.split('@')[0] || 'User',
           avatarUrl: '',
-          teddyVariant: 'dashboard',
+          teddyVariant: 'magic-panda',
           teddyColor: '#8b5cf6',
           pattern: 'none',
           updatedAt: serverTimestamp()

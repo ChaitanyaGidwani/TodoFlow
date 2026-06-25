@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { useAuth, useUser } from "@/firebase";
-import { useProfile } from "@/hooks/use-profile";
+import { useProfile, UserProfile } from "@/hooks/use-profile";
 import { Button } from "@/components/ui/button";
 import { TeddyIcon, IconVariant } from "@/components/TeddyIcons";
 import { useTheme } from "@/components/ThemeProvider";
@@ -61,6 +61,11 @@ export default function ProfilePage() {
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (!user) {
+    router.push("/");
+    return null;
   }
 
   return (
@@ -157,7 +162,7 @@ export default function ProfilePage() {
                 {PATTERNS.map(p => (
                   <button
                     key={p.id}
-                    onClick={() => updateProfile({ pattern: p.id as any })}
+                    onClick={() => updateProfile({ pattern: p.id as UserProfile['pattern'] })}
                     className={cn(
                       "py-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-tight transition-all duration-300 flex items-center justify-center gap-2",
                       profile?.pattern === p.id 

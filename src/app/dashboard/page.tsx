@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { 
   useUser, 
   useFirestore 
@@ -43,7 +44,8 @@ const COLORS = ["#A855F7", "#3B82F6", "#EC4899", "#10B981"];
 
 export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
-  const { isUserLoading } = useUser();
+  const router = useRouter();
+  const { user, isUserLoading } = useUser();
   const { profile } = useProfile();
   const { todos, loading: isTodosLoading } = useTodos();
 
@@ -74,7 +76,10 @@ export default function Dashboard() {
       end: new Date()
     }).map(day => {
       const count = todos.filter(t => {
-        const d = t.createdAt?.toDate ? t.createdAt.toDate() : parseISO(t.createdAt);
+        if (!t.createdAt) return false;
+        const d = typeof t.createdAt === 'object' && 'toDate' in t.createdAt
+          ? t.createdAt.toDate()
+          : parseISO(t.createdAt as string);
         return format(d, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
       }).length;
       return { name: format(day, 'EEE'), value: count };
@@ -94,6 +99,11 @@ export default function Dashboard() {
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (!user) {
+    router.push("/");
+    return null;
   }
 
   const statItems = [

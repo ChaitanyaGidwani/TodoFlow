@@ -21,6 +21,16 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   Select, 
   SelectContent, 
@@ -62,6 +72,7 @@ export default function TodosPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState("all");
   const [breakingDownId, setBreakingDownId] = useState<string | null>(null);
+  const [todoToDelete, setTodoToDelete] = useState<Todo | null>(null);
   
   const router = useRouter();
   const db = useFirestore();
@@ -115,10 +126,18 @@ export default function TodosPage() {
     if (!db || !user) return;
     const future = isFutureTask(todo.dueDate);
     if (future) {
-      if (!confirm('This is a future task. Delete it permanently? 🐻')) return;
+      setTodoToDelete(todo);
+      return;
     }
     const docRef = doc(db, "users", user.uid, "todos", todo.id);
     deleteDocumentNonBlocking(docRef);
+  };
+
+  const confirmDelete = () => {
+    if (!db || !user || !todoToDelete) return;
+    const docRef = doc(db, "users", user.uid, "todos", todoToDelete.id);
+    deleteDocumentNonBlocking(docRef);
+    setTodoToDelete(null);
   };
 
   const filteredTodos = todos?.filter(t => {
@@ -325,6 +344,24 @@ export default function TodosPage() {
           })}
         </div>
       </ScrollArea>
+
+      {/* Delete confirmation dialog for future tasks */}
+      <AlertDialog open={!!todoToDelete} onOpenChange={(open) => !open && setTodoToDelete(null)}>
+        <AlertDialogContent className="glass-card border-white/20 dark:border-purple-500/30">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-black">Delete Future Task? 🐻</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              This is a future task{todoToDelete?.title ? ` — "${todoToDelete.title}"` : ''}. Deleting it is permanent and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl font-bold">Keep It</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold">
+              Delete Permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
